@@ -1,0 +1,1442 @@
+import React, { useState, useMemo } from "react";
+import {
+  ArrowRight, Search, Package, Truck, CheckCircle2, Circle, Clock, ShieldCheck,
+  Globe2, Zap, Building2, Menu, X, ChevronRight, Upload, MapPin, Phone, Mail,
+  FileText, MessageSquare, Bell, Settings, LogOut, LayoutGrid, ClipboardList,
+  Receipt, CreditCard, Users, Wrench, BarChart3, AlertTriangle, Star, Plus,
+  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award
+} from "lucide-react";
+import { api } from "./lib/api.js";
+
+/* ---------------------------------------------------------------------- */
+/* DEMO DATA                                                              */
+/* ---------------------------------------------------------------------- */
+
+const CUSTOMERS = [
+  { id: "c1", name: "James Mwangi", email: "james.mwangi@example.com", phone: "+254 712 345 678", type: "Individual" },
+  { id: "c2", name: "Aisha Hassan", email: "aisha.hassan@example.com", phone: "+254 733 221 908", type: "Individual" },
+  { id: "c3", name: "Brian Otieno", email: "brian.otieno@primeretail.co.ke", phone: "+254 700 556 213", type: "Corporate — Prime Retail Ltd" },
+];
+
+const AGENTS = [
+  { id: "a1", name: "Collins", active: 6, completed: 41, rating: 4.9 },
+  { id: "a2", name: "Brian", active: 4, completed: 33, rating: 4.7 },
+  { id: "a3", name: "Mary", active: 5, completed: 52, rating: 4.95 },
+];
+
+const SUPPLIERS = [
+  { id: "s1", name: "ABC Electronics", category: "Electronics", location: "Nairobi, Nashua Centre", verified: true, reliability: 94, price: 88, delivery: 90, warranty: 92, deals: 118, complaints: 2 },
+  { id: "s2", name: "Nairobi Office Solutions", category: "Office Equipment", location: "Nairobi, Westlands", verified: true, reliability: 86, price: 91, delivery: 78, warranty: 80, deals: 76, complaints: 5 },
+  { id: "s3", name: "Industrial Supplies Kenya", category: "Industrial Equipment", location: "Nairobi, Industrial Area", verified: true, reliability: 92, price: 83, delivery: 95, warranty: 89, deals: 54, complaints: 1 },
+];
+
+const STATUS_META = {
+  "Submitted": { color: "grey" }, "Under Review": { color: "blue" }, "Supplier Research": { color: "blue" },
+  "Quotation Ready": { color: "orange" }, "Awaiting Approval": { color: "orange" }, "Awaiting Payment": { color: "orange" },
+  "Purchased": { color: "blue" }, "Dispatched": { color: "blue" }, "In Transit": { color: "blue" },
+  "Delivered": { color: "green" }, "Completed": { color: "green" }, "Cancelled": { color: "grey" }, "Issue Reported": { color: "red" },
+};
+
+const REQUESTS = [
+  {
+    id: "YPM-202609-00127", item: "HP EliteBook 840 G9", customer: "James Mwangi", agent: "Collins",
+    status: "In Transit", urgency: "Normal", value: 145000, currency: "KES", created: "2026-09-02",
+    steps: [
+      ["Request Submitted", true], ["Request Reviewed", true], ["Supplier Research", true],
+      ["Quotation Ready", true], ["Customer Approved", true], ["Payment Received", true],
+      ["Purchased", true], ["Dispatched", true], ["In Transit", "active"], ["Delivered", false],
+    ],
+    timeline: [
+      ["09:12", "Customer submitted request"], ["09:15", "AI generated procurement specification"],
+      ["09:20", "YourPlug reviewed request"], ["09:25", "Agent Collins assigned"],
+      ["09:40", "Supplier A contacted"], ["10:05", "Supplier A quotation received"],
+      ["10:15", "Supplier B quotation received"], ["10:30", "Supplier comparison completed"],
+      ["10:45", "Supplier A recommended"], ["11:00", "Customer approved quotation"],
+      ["11:04", "Invoice generated"], ["11:10", "Payment received"], ["11:15", "Purchase order created"],
+      ["11:45", "Supplier confirmed order"], ["14:20", "Courier collected package"], ["15:10", "Order in transit"],
+    ],
+    quotes: [
+      { supplier: "ABC Electronics", price: 145000, delivery: "1-day delivery", warranty: "2-year warranty", reliability: 94, score: 91 },
+      { supplier: "Nairobi Office Solutions", price: 138500, delivery: "3-day delivery", warranty: "1-year warranty", reliability: 86, score: 79 },
+      { supplier: "Industrial Supplies Kenya", price: 151000, delivery: "Same-day delivery", warranty: "2-year warranty", reliability: 92, score: 86 },
+    ],
+    recommended: "ABC Electronics",
+  },
+  {
+    id: "YPM-202609-00131", item: "Office Chairs (Ergonomic) x12", customer: "Brian Otieno", agent: "Mary",
+    status: "Awaiting Approval", urgency: "High", value: 216000, currency: "KES", created: "2026-09-05",
+    steps: [
+      ["Request Submitted", true], ["Request Reviewed", true], ["Supplier Research", true],
+      ["Quotation Ready", true], ["Customer Approved", "active"], ["Payment Received", false],
+      ["Purchased", false], ["Dispatched", false], ["In Transit", false], ["Delivered", false],
+    ],
+    timeline: [
+      ["08:40", "Customer submitted request"], ["08:44", "AI generated procurement specification"],
+      ["08:50", "Agent Mary assigned"], ["09:30", "3 suppliers contacted"], ["11:15", "Quotations received"],
+      ["11:40", "Supplier comparison completed"], ["11:45", "Awaiting customer approval"],
+    ],
+    quotes: [
+      { supplier: "Nairobi Office Solutions", price: 216000, delivery: "4-day delivery", warranty: "2-year warranty", reliability: 86, score: 88 },
+    ],
+    recommended: "Nairobi Office Solutions",
+  },
+  {
+    id: "YPM-202609-00134", item: "Commercial Display Refrigerator", customer: "Aisha Hassan", agent: "Brian",
+    status: "Supplier Research", urgency: "Normal", value: 0, currency: "KES", created: "2026-09-07",
+    steps: [
+      ["Request Submitted", true], ["Request Reviewed", true], ["Supplier Research", "active"],
+      ["Quotation Ready", false], ["Customer Approved", false], ["Payment Received", false],
+      ["Purchased", false], ["Dispatched", false], ["In Transit", false], ["Delivered", false],
+    ],
+    timeline: [
+      ["07:55", "Customer submitted request"], ["08:01", "AI generated procurement specification — missing dimensions, voltage, brand preference"],
+      ["08:10", "Agent Brian assigned"], ["08:30", "Supplier research started"],
+    ],
+    quotes: [], recommended: null,
+  },
+  {
+    id: "YPM-202608-00098", item: "Printer Cartridges (HP 305) x20", customer: "James Mwangi", agent: "Collins",
+    status: "Completed", urgency: "Normal", value: 42000, currency: "KES", created: "2026-08-14",
+    steps: [ ["Request Submitted", true], ["Delivered", true], ["Completed", true] ],
+    timeline: [["—", "Delivered and closed. Customer saved KSh 6,000 vs. original quote."]],
+    quotes: [], recommended: "ABC Electronics",
+  },
+  {
+    id: "YPM-202609-00140", item: "Industrial Water Pump — 5HP", customer: "Brian Otieno", agent: "Collins",
+    status: "Awaiting Payment", urgency: "Emergency", value: 312000, currency: "KES", created: "2026-09-08",
+    steps: [
+      ["Request Submitted", true], ["Request Reviewed", true], ["Supplier Research", true],
+      ["Quotation Ready", true], ["Customer Approved", true], ["Payment Received", "active"],
+      ["Purchased", false], ["Dispatched", false], ["In Transit", false], ["Delivered", false],
+    ],
+    timeline: [
+      ["06:10", "Emergency request submitted"], ["06:12", "Flagged for priority handling"],
+      ["06:20", "Agent Collins assigned"], ["07:05", "Supplier Industrial Supplies Kenya recommended"],
+      ["07:40", "Customer approved"], ["07:42", "Invoice sent — awaiting M-Pesa payment"],
+    ],
+    quotes: [], recommended: "Industrial Supplies Kenya",
+  },
+];
+
+const CATEGORIES = ["Electronics", "Office Equipment", "Furniture", "Industrial Equipment", "Business Supplies", "Auto Parts", "Home Products", "Specialty Items", "International Products", "And more"];
+
+/* ---------------------------------------------------------------------- */
+/* SHARED UI PRIMITIVES                                                   */
+/* ---------------------------------------------------------------------- */
+
+const badgeColors = {
+  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  blue: "bg-sky-50 text-sky-700 ring-sky-600/20",
+  orange: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  red: "bg-rose-50 text-rose-700 ring-rose-600/20",
+  grey: "bg-slate-100 text-slate-600 ring-slate-500/20",
+};
+
+function StatusBadge({ status }) {
+  const c = STATUS_META[status]?.color || "grey";
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${badgeColors[c]}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${c === "green" ? "bg-emerald-500" : c === "blue" ? "bg-sky-500" : c === "orange" ? "bg-amber-500" : c === "red" ? "bg-rose-500" : "bg-slate-400"}`} />
+      {status}
+    </span>
+  );
+}
+
+function UrgencyTag({ urgency }) {
+  if (urgency === "Emergency") return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-semibold bg-rose-600 text-white">EMERGENCY</span>;
+  if (urgency === "Urgent") return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-semibold bg-amber-500 text-white">URGENT</span>;
+  if (urgency === "High") return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-600/20">HIGH</span>;
+  return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-500">NORMAL</span>;
+}
+
+function Money({ value, currency = "KES" }) {
+  if (!value) return <span className="text-slate-400">Pending quote</span>;
+  return <span>{currency === "KES" ? "KSh " : currency + " "}{value.toLocaleString()}</span>;
+}
+
+function PrimaryButton({ children, onClick, className = "", icon: Icon = ArrowRight, disabled = false }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className={`inline-flex items-center justify-center gap-2 rounded-lg bg-[#0F1C2E] px-5 py-3 text-sm font-medium text-white hover:bg-[#16283f] disabled:opacity-60 transition-colors ${className}`}>
+      {children}<Icon size={16} />
+    </button>
+  );
+}
+function SecondaryButton({ children, onClick, className = "" }) {
+  return (
+    <button onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-[#0F1C2E] hover:bg-slate-50 transition-colors ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* PUBLIC SITE                                                            */
+/* ---------------------------------------------------------------------- */
+
+function SiteHeader({ nav, setNav, session, setSession }) {
+  const [open, setOpen] = useState(false);
+  const links = [
+    ["Home", "home"], ["How It Works", "how"], ["Services", "services"],
+    ["Corporate", "corporate"], ["International", "international"], ["Urgent", "urgent"],
+    ["About", "about"], ["FAQ", "faq"], ["Contact", "contact"],
+  ];
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <button onClick={() => setNav("home")} className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#0F1C2E] text-white font-semibold text-sm">YP</div>
+          <span className="text-[15px] font-semibold tracking-tight text-[#0F1C2E]">YourPlug Management</span>
+        </button>
+        <nav className="hidden lg:flex items-center gap-6">
+          {links.map(([label, key]) => (
+            <button key={key} onClick={() => setNav(key)}
+              className={`text-sm ${nav === key ? "text-[#0F1C2E] font-medium" : "text-slate-500 hover:text-slate-800"}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="hidden lg:flex items-center gap-3">
+          <button onClick={() => setNav("track")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Track My Order</button>
+          {session ? (
+            <button onClick={() => setNav(session.role === "admin" ? "admin" : "dashboard")}
+              className="rounded-lg bg-[#0F8B75] px-4 py-2 text-sm font-medium text-white hover:bg-[#0c6f5d]">
+              Go to {session.role === "admin" ? "Admin" : "Dashboard"}
+            </button>
+          ) : (
+            <>
+              <button onClick={() => setNav("login")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Log in</button>
+              <button onClick={() => setNav("register")} className="rounded-lg bg-[#0F1C2E] px-4 py-2 text-sm font-medium text-white hover:bg-[#16283f]">Request an Item</button>
+            </>
+          )}
+        </div>
+        <button className="lg:hidden" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
+      </div>
+      {open && (
+        <div className="lg:hidden border-t border-slate-200 px-6 py-4 space-y-3">
+          {links.map(([label, key]) => (
+            <button key={key} onClick={() => { setNav(key); setOpen(false); }} className="block text-sm text-slate-600">{label}</button>
+          ))}
+          <div className="pt-2 flex gap-3">
+            <SecondaryButton onClick={() => { setNav("login"); setOpen(false); }} className="flex-1 py-2">Log in</SecondaryButton>
+            <PrimaryButton onClick={() => { setNav("register"); setOpen(false); }} className="flex-1 py-2">Request</PrimaryButton>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function SiteFooter({ setNav }) {
+  return (
+    <footer className="border-t border-slate-200 bg-[#0F1C2E] text-slate-300">
+      <div className="mx-auto max-w-7xl px-6 py-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-white font-semibold text-sm">YP</div>
+            <span className="text-white font-semibold">YourPlug Management</span>
+          </div>
+          <p className="text-sm text-slate-400 max-w-xs">Your personal procurement partner. We find it, compare it, buy it, and get it to you.</p>
+        </div>
+        {[
+          ["Services", ["services", "corporate", "international", "urgent"]],
+          ["Company", ["about", "faq", "contact"]],
+          ["Account", ["login", "register", "track"]],
+        ].map(([title, keys]) => (
+          <div key={title}>
+            <p className="text-white text-sm font-medium mb-3">{title}</p>
+            <ul className="space-y-2">
+              {keys.map(k => (
+                <li key={k}><button onClick={() => setNav(k)} className="text-sm text-slate-400 hover:text-white capitalize">{k === "track" ? "Track Order" : k}</button></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div>
+          <p className="text-white text-sm font-medium mb-3">Legal</p>
+          <ul className="space-y-2 text-sm text-slate-400">
+            <li>Terms & Conditions</li><li>Privacy Policy</li><li>Refund Policy</li><li>Procurement Service Agreement</li>
+          </ul>
+        </div>
+      </div>
+      <div className="border-t border-white/10 py-6 text-center text-xs text-slate-500">© 2026 YourPlug Management, Nairobi, Kenya. All rights reserved.</div>
+    </footer>
+  );
+}
+
+function Section({ children, className = "" }) {
+  return <section className={`mx-auto max-w-7xl px-6 py-20 ${className}`}>{children}</section>;
+}
+function Eyebrow({ children }) {
+  return <p className="text-sm font-medium text-[#0F8B75] mb-3">{children}</p>;
+}
+
+function HomePage({ setNav }) {
+  const steps = ["Tell Us", "We Source", "We Compare", "You Approve", "We Purchase", "We Deliver"];
+  return (
+    <>
+      <div className="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+        <Section className="py-24 grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <p className="text-sm font-medium text-[#0F8B75] mb-4">Your personal procurement partner</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-[#0F1C2E] leading-[1.08]">Too busy to shop around?</h1>
+            <p className="mt-6 text-lg text-slate-600 max-w-lg">Tell YourPlug what you need and we'll find reliable suppliers, compare the best options, purchase on your behalf, and coordinate delivery.</p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton>
+              <SecondaryButton onClick={() => setNav("how")}>How It Works</SecondaryButton>
+            </div>
+            <div className="mt-10 flex items-center gap-6 text-sm text-slate-500">
+              <div className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[#0F8B75]" /> Verified suppliers</div>
+              <div className="flex items-center gap-1.5"><Clock size={16} className="text-[#0F8B75]" /> Avg. 2-day sourcing</div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-slate-400 mb-4">YPM-202609-00127 · HP EliteBook</p>
+            <div className="space-y-3">
+              {[["Request submitted", true], ["Suppliers compared", true], ["You approved", true], ["Purchased & dispatched", true], ["In transit", "active"], ["Delivered", false]].map(([label, s], i) => (
+                <div key={i} className="flex items-center gap-3">
+                  {s === true ? <CheckCircle2 size={18} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={18} className="text-amber-500 fill-amber-500" /> : <Circle size={18} className="text-slate-300" />}
+                  <span className={`text-sm ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+      </div>
+
+      <Section>
+        <Eyebrow>How YourPlug works</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From a two-line request to a delivered item — six steps, zero legwork for you.</h2>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-6">
+          {steps.map((s, i) => (
+            <div key={s} className="rounded-xl border border-slate-200 p-5">
+              <div className="text-xs font-medium text-slate-400 mb-3">{String(i + 1).padStart(2, "0")}</div>
+              <p className="text-sm font-medium text-[#0F1C2E]">{s}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="bg-slate-50 rounded-3xl">
+        <Eyebrow>What can we procure?</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">If it can be sourced and delivered, we can procure it.</h2>
+        <div className="mt-10 flex flex-wrap gap-3">
+          {CATEGORIES.map(c => <span key={c} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700">{c}</span>)}
+        </div>
+      </Section>
+
+      <Section>
+        <Eyebrow>Why YourPlug</Eyebrow>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+          {[
+            [Clock, "Save time", "We handle sourcing, comparison and negotiation so you don't have to."],
+            [ShieldCheck, "Verified suppliers", "Every supplier is vetted and scored on reliability, quality and delivery."],
+            [TrendingDown, "Competitive pricing", "We negotiate on your behalf and show you exactly what you saved."],
+            [Building2, "Professional procurement", "Run by people who understand sourcing, contracts and logistics."],
+            [BarChart3, "Transparent tracking", "Every request has a live status and a full audit trail."],
+            [Truck, "Convenient delivery", "Local or international, we coordinate delivery end to end."],
+          ].map(([Icon, title, body]) => (
+            <div key={title} className="flex gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0F8B75]/10 text-[#0F8B75]"><Icon size={20} /></div>
+              <div><p className="font-medium text-[#0F1C2E]">{title}</p><p className="text-sm text-slate-600 mt-1">{body}</p></div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="grid lg:grid-cols-3 gap-6">
+        {[
+          [Building2, "Corporate procurement", "Outsource repetitive procurement and let your team focus on the business.", "corporate"],
+          [Globe2, "International procurement", "Need something from overseas? We source, purchase and coordinate delivery.", "international"],
+          [Zap, "Need it today?", "Emergency procurement for time-sensitive purchases, prioritized end to end.", "urgent"],
+        ].map(([Icon, title, body, key]) => (
+          <button key={key} onClick={() => setNav(key)} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
+            <Icon size={22} className="text-[#0F1C2E]" />
+            <p className="mt-4 font-medium text-lg text-[#0F1C2E]">{title}</p>
+            <p className="text-sm text-slate-600 mt-2">{body}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">Learn more <ChevronRight size={14} /></span>
+          </button>
+        ))}
+      </Section>
+
+      <Section className="bg-slate-50 rounded-3xl">
+        <Eyebrow>Customers</Eyebrow>
+        <div className="grid md:grid-cols-3 gap-6 mt-8">
+          {[
+            ["James Mwangi", "Individual", "I sent one WhatsApp-style message about a laptop I needed and had it delivered two days later, cheaper than I expected."],
+            ["Aisha Hassan", "Individual", "They found a commercial fridge supplier I never would have located on my own, and negotiated the price down."],
+            ["Brian Otieno", "Prime Retail Ltd", "We moved all our office procurement to YourPlug. Our team stopped chasing suppliers entirely."],
+          ].map(([name, role, quote]) => (
+            <div key={name} className="rounded-xl bg-white border border-slate-200 p-6">
+              <div className="flex gap-1 text-amber-400 mb-3">{[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}</div>
+              <p className="text-sm text-slate-700">"{quote}"</p>
+              <p className="mt-4 text-sm font-medium text-[#0F1C2E]">{name} <span className="text-slate-400 font-normal">— {role}</span></p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="text-center">
+        <h2 className="text-3xl font-semibold text-[#0F1C2E]">Stop searching. Start requesting.</h2>
+        <div className="mt-8 flex justify-center"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
+      </Section>
+    </>
+  );
+}
+
+function HowItWorksPage({ setNav }) {
+  const steps = [
+    ["Tell us", "Describe what you need in plain language — text, a photo, or a link. No product-catalogue browsing required."],
+    ["We source", "Our agents and AI assistant identify verified suppliers who can meet your specification, budget and timeline."],
+    ["We compare", "We request quotations, score suppliers on price, reliability, delivery and warranty, and negotiate where it helps."],
+    ["You approve", "We present one clear recommendation with full pricing. You approve, ask for another option, or decline."],
+    ["We purchase", "Once approved and paid, we place the order and manage the supplier relationship on your behalf."],
+    ["We deliver", "We coordinate pickup and delivery, and keep you updated with live tracking until it arrives."],
+  ];
+  return (
+    <Section>
+      <Eyebrow>How it works</Eyebrow>
+      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">A managed procurement service, not a marketplace.</h1>
+      <p className="mt-4 text-slate-600 max-w-2xl">You never search listings, contact suppliers, or manage multiple deliveries. You tell us once, approve one recommendation, and pay one invoice.</p>
+      <div className="mt-14 space-y-0">
+        {steps.map(([title, body], i) => (
+          <div key={title} className="flex gap-6 py-7 border-t border-slate-200 first:border-t-0">
+            <div className="text-2xl font-semibold text-slate-300 w-10 shrink-0">{i + 1}</div>
+            <div><p className="font-medium text-[#0F1C2E] text-lg">{title}</p><p className="text-slate-600 mt-1 max-w-xl">{body}</p></div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-12"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
+    </Section>
+  );
+}
+
+function ServicesPage({ setNav }) {
+  const cards = [
+    [Package, "Standard procurement", "Everyday purchases — electronics, office supplies, furniture — sourced and delivered without the legwork."],
+    [Building2, "Corporate procurement", "Multi-user accounts, approval hierarchies, spending limits and monthly statements for organizations."],
+    [Globe2, "International procurement", "Sourcing from overseas suppliers with transparent landed-cost estimates and customs handling."],
+    [Zap, "Urgent procurement", "Emergency sourcing for time-sensitive purchases, prioritized ahead of standard requests."],
+    [Wrench, "Industrial & specialty", "Hard-to-find equipment and specialty items sourced through our verified industrial supplier network."],
+    [FileText, "Recurring procurement", "Scheduled repeat purchases — like monthly office supplies — created automatically on your behalf."],
+  ];
+  return (
+    <Section>
+      <Eyebrow>Services</Eyebrow>
+      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">Procurement services for every kind of buyer.</h1>
+      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cards.map(([Icon, title, body]) => (
+          <div key={title} className="rounded-2xl border border-slate-200 p-7">
+            <Icon size={22} className="text-[#0F1C2E]" />
+            <p className="mt-4 font-medium text-[#0F1C2E]">{title}</p>
+            <p className="text-sm text-slate-600 mt-2">{body}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-12"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
+    </Section>
+  );
+}
+
+function CorporatePage({ setNav }) {
+  return (
+    <Section className="grid lg:grid-cols-2 gap-16 items-start">
+      <div>
+        <Eyebrow>Corporate procurement</Eyebrow>
+        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Outsource procurement. Keep your team focused.</h1>
+        <p className="mt-5 text-slate-600">Give your organization a single procurement partner instead of ten open supplier conversations. Set spend limits, approval chains, and let YourPlug run the sourcing.</p>
+        <ul className="mt-8 space-y-3 text-sm text-slate-700">
+          {["Multiple users across departments", "Configurable approval hierarchy by spend level", "Monthly statements and procurement reports", "Recurring procurement schedules", "Dedicated account visibility for finance and procurement officers"].map(t => (
+            <li key={t} className="flex gap-2"><CheckCircle2 size={16} className="text-[#0F8B75] mt-0.5 shrink-0" /> {t}</li>
+          ))}
+        </ul>
+        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Set up a corporate account</PrimaryButton></div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 p-6">
+        <p className="text-sm font-medium text-[#0F1C2E] mb-4">Example approval rule</p>
+        <div className="space-y-3 text-sm">
+          {[["Under KSh 10,000", "No approval required"], ["KSh 10,000 – 50,000", "Manager approval"], ["Above KSh 50,000", "Senior approval"]].map(([a, b]) => (
+            <div key={a} className="flex justify-between rounded-lg bg-slate-50 px-4 py-3"><span className="text-slate-600">{a}</span><span className="font-medium text-[#0F1C2E]">{b}</span></div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function InternationalPage({ setNav }) {
+  return (
+    <Section className="grid lg:grid-cols-2 gap-16 items-start">
+      <div>
+        <Eyebrow>International procurement</Eyebrow>
+        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Need something from overseas?</h1>
+        <p className="mt-5 text-slate-600">We source, purchase and coordinate delivery from international suppliers, with a transparent landed-cost estimate before you approve anything.</p>
+        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Request an international item</PrimaryButton></div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 p-6">
+        <p className="text-sm font-medium text-[#0F1C2E] mb-4">Estimated landed cost — example</p>
+        <div className="space-y-2 text-sm">
+          {[["Product cost (USD 620)", "KSh 80,600"], ["Exchange rate", "1 USD = KSh 130 (est.)"], ["International shipping", "KSh 14,200"], ["Estimated duties / taxes", "KSh 12,800"], ["YourPlug procurement fee", "KSh 6,500"]].map(([a, b]) => (
+            <div key={a} className="flex justify-between py-1.5 border-b border-slate-100 text-slate-600"><span>{a}</span><span className="text-[#0F1C2E]">{b}</span></div>
+          ))}
+          <div className="flex justify-between pt-3 font-medium text-[#0F1C2E]"><span>Estimated landed cost</span><span>KSh 114,100</span></div>
+          <p className="text-xs text-slate-400 pt-2">Estimated — confirmed costs are provided once supplier and shipping quotes are finalized.</p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function UrgentPage({ setNav }) {
+  return (
+    <Section className="grid lg:grid-cols-2 gap-16 items-start">
+      <div>
+        <Eyebrow>Urgent procurement</Eyebrow>
+        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Need it today?</h1>
+        <p className="mt-5 text-slate-600">Emergency procurement is prioritized ahead of standard requests. A premium service fee applies, reflecting the expedited sourcing and delivery effort involved.</p>
+        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Start an urgent request</PrimaryButton></div>
+      </div>
+      <div className="space-y-3">
+        {[
+          ["Normal", "Standard sourcing timeline, no added fee"],
+          ["High", "Prioritized queue placement"],
+          ["Urgent", "Same-day sourcing where suppliers allow, added fee applies"],
+          ["Emergency", "Immediate agent assignment, expedited delivery options, premium fee applies"],
+        ].map(([level, body]) => (
+          <div key={level} className="rounded-xl border border-slate-200 p-5 flex items-center justify-between">
+            <div><p className="font-medium text-[#0F1C2E]">{level}</p><p className="text-sm text-slate-600 mt-0.5">{body}</p></div>
+            <UrgencyTag urgency={level} />
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function AboutPage() {
+  return (
+    <Section>
+      <Eyebrow>About us</Eyebrow>
+      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">A Kenyan procurement technology company, built to scale.</h1>
+      <p className="mt-5 text-slate-600 max-w-2xl">YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement agents with technology that keeps every request transparent, from the first message to final delivery.</p>
+      <div className="mt-12 grid sm:grid-cols-3 gap-6">
+        {[["Verified supplier network", "Suppliers scored on price, reliability, quality, delivery and warranty performance."], ["Trained procurement agents", "Every request is handled by an agent, not left to an algorithm alone."], ["Full audit trail", "Every status change and transaction event is logged and available to you."]].map(([t, b]) => (
+          <div key={t} className="rounded-xl border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function ContactPage() {
+  return (
+    <Section className="grid lg:grid-cols-2 gap-16">
+      <div>
+        <Eyebrow>Contact</Eyebrow>
+        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Talk to a procurement agent.</h1>
+        <div className="mt-8 space-y-4 text-sm text-slate-700">
+          <div className="flex items-center gap-3"><Phone size={16} className="text-[#0F8B75]" /> +254 700 000 000</div>
+          <div className="flex items-center gap-3"><Mail size={16} className="text-[#0F8B75]" /> hello@yourplug.co.ke</div>
+          <div className="flex items-center gap-3"><MapPin size={16} className="text-[#0F8B75]" /> Nairobi, Kenya</div>
+        </div>
+      </div>
+      <form className="rounded-2xl border border-slate-200 p-6 space-y-4" onSubmit={e => e.preventDefault()}>
+        <input placeholder="Full name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <input placeholder="Email address" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <textarea placeholder="How can we help?" rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <PrimaryButton className="w-full">Send message</PrimaryButton>
+      </form>
+    </Section>
+  );
+}
+
+function FAQPage() {
+  const faqs = [
+    ["Is YourPlug a marketplace?", "No. You never browse listings or negotiate with suppliers directly. You describe what you need and we run the entire procurement process."],
+    ["How is pricing determined?", "You see the supplier's price, our procurement fee, and any delivery fee broken out separately before you approve a purchase."],
+    ["How do I pay?", "Primarily via M-Pesa. Each invoice has a unique payment reference, and payment is confirmed automatically once received."],
+    ["Can I request international items?", "Yes — see International Procurement for an example landed-cost breakdown."],
+    ["What if the item arrives damaged or wrong?", "Report it from your dashboard. We manage returns, replacements and refunds with the supplier or courier on your behalf."],
+    ["Do you support corporate accounts?", "Yes, with multiple users, department budgets and configurable approval rules."],
+  ];
+  const [openIdx, setOpenIdx] = useState(0);
+  return (
+    <Section>
+      <Eyebrow>FAQ</Eyebrow>
+      <h1 className="text-4xl font-semibold text-[#0F1C2E]">Frequently asked questions.</h1>
+      <div className="mt-10 max-w-2xl divide-y divide-slate-200 border-t border-b border-slate-200">
+        {faqs.map(([q, a], i) => (
+          <div key={q}>
+            <button onClick={() => setOpenIdx(openIdx === i ? -1 : i)} className="w-full flex items-center justify-between py-5 text-left">
+              <span className="font-medium text-[#0F1C2E]">{q}</span>
+              <ChevronDown size={18} className={`text-slate-400 transition-transform ${openIdx === i ? "rotate-180" : ""}`} />
+            </button>
+            {openIdx === i && <p className="pb-5 text-sm text-slate-600">{a}</p>}
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function TrackOrderPage() {
+  const [query, setQuery] = useState("");
+  const [result, setResult] = useState(null);
+  const [searched, setSearched] = useState(false);
+  const doSearch = () => {
+    setSearched(true);
+    setResult(REQUESTS.find(r => r.id.toLowerCase() === query.trim().toLowerCase()) || null);
+  };
+  return (
+    <Section className="max-w-2xl">
+      <Eyebrow>Track order</Eyebrow>
+      <h1 className="text-3xl font-semibold text-[#0F1C2E]">Where's my procurement request?</h1>
+      <div className="mt-6 flex gap-3">
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="e.g. YPM-202609-00127"
+          className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm" onKeyDown={e => e.key === "Enter" && doSearch()} />
+        <PrimaryButton onClick={doSearch} icon={Search}>Track</PrimaryButton>
+      </div>
+      <p className="mt-3 text-xs text-slate-400">Try: YPM-202609-00127</p>
+      {searched && !result && <p className="mt-8 text-sm text-slate-500">No request found with that ID. Check the reference on your invoice or confirmation email.</p>}
+      {result && (
+        <div className="mt-10 rounded-2xl border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm text-slate-400">{result.id}</p>
+            <StatusBadge status={result.status} />
+          </div>
+          <p className="text-lg font-medium text-[#0F1C2E]">{result.item}</p>
+          <div className="mt-6 space-y-3">
+            {result.steps.map(([label, s], i) => (
+              <div key={i} className="flex items-center gap-3">
+                {s === true ? <CheckCircle2 size={18} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={18} className="text-amber-500 fill-amber-500" /> : <Circle size={18} className="text-slate-300" />}
+                <span className={`text-sm ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function AuthPage({ mode, setNav, onAuth }) {
+  const isRegister = mode === "register";
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "", terms: false, privacy: false });
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(""); setNotice(""); setLoading(true);
+    try {
+      if (isRegister) {
+        if (form.password !== form.confirm) throw new Error("Passwords don't match.");
+        await api.register({
+          name: form.name, email: form.email, phone: form.phone, password: form.password,
+          acceptedTerms: form.terms, acceptedPrivacy: form.privacy,
+        });
+        setNotice("Account created. Check the API server logs for your demo verification codes, then log in below.");
+        setLoading(false);
+        return;
+      }
+      const data = await api.login(form.email, form.password);
+      onAuth("customer", { name: data.user.name, token: data.accessToken, role: data.user.role.toLowerCase() });
+    } catch (err) {
+      setError(err.message || "Couldn't reach the API. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Section className="max-w-md">
+      <h1 className="text-3xl font-semibold text-[#0F1C2E]">{isRegister ? "Create your account" : "Log in"}</h1>
+      <p className="mt-2 text-sm text-slate-500">{isRegister ? "Register to submit and track procurement requests." : "Access your dashboard to track requests and approve quotes."}</p>
+      <form className="mt-8 space-y-4" onSubmit={submit}>
+        {isRegister && <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder="Full name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+        <input required type={isRegister ? "email" : "text"} value={form.email} onChange={e => set("email", e.target.value)}
+          placeholder={isRegister ? "Email address" : "Email address (seeded demo: james.mwangi@example.com)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        {isRegister && <input required value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="Phone number" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+        <input required type="password" value={form.password} onChange={e => set("password", e.target.value)}
+          placeholder={isRegister ? "Password (min 8 characters)" : "Password (demo: Password123!)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        {isRegister && <input required type="password" value={form.confirm} onChange={e => set("confirm", e.target.value)} placeholder="Confirm password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+        {isRegister && (
+          <div className="space-y-2 text-xs text-slate-500">
+            <label className="flex items-start gap-2"><input required type="checkbox" checked={form.terms} onChange={e => set("terms", e.target.checked)} className="mt-0.5" /> I accept the Terms & Conditions</label>
+            <label className="flex items-start gap-2"><input required type="checkbox" checked={form.privacy} onChange={e => set("privacy", e.target.checked)} className="mt-0.5" /> I accept the Privacy Policy</label>
+          </div>
+        )}
+        {!isRegister && <button type="button" className="text-xs text-[#0F8B75]">Forgot password?</button>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
+        {notice && <p className="text-xs text-emerald-700">{notice}</p>}
+        <PrimaryButton className="w-full" disabled={loading}>{loading ? "Please wait…" : isRegister ? "Create account" : "Log in"}</PrimaryButton>
+      </form>
+      <p className="mt-6 text-xs text-slate-400 leading-relaxed">This calls the real API at <code>{import.meta.env.VITE_API_URL || "http://localhost:4000/api"}</code>. If the backend isn't running, use demo mode instead.</p>
+      <button onClick={() => onAuth("customer", { name: "James Mwangi", token: null, role: "customer" })} className="mt-2 text-xs font-medium text-[#0F1C2E] underline block">Continue in demo mode (no backend needed) →</button>
+      <button onClick={() => onAuth("admin", { name: "Admin", token: null, role: "admin" })} className="mt-2 text-xs font-medium text-[#0F1C2E] underline block">Preview as admin (demo mode) →</button>
+      <p className="mt-4 text-sm text-slate-500">
+        {isRegister ? "Already have an account? " : "New to YourPlug? "}
+        <button onClick={() => setNav(isRegister ? "login" : "register")} className="text-[#0F8B75] font-medium">{isRegister ? "Log in" : "Register"}</button>
+      </p>
+    </Section>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* CUSTOMER DASHBOARD                                                     */
+/* ---------------------------------------------------------------------- */
+
+function DashSidebar({ tab, setTab, role, setSession, setNav }) {
+  const customerNav = [
+    ["overview", "Dashboard", LayoutGrid], ["new", "New Request", Plus], ["requests", "My Requests", ClipboardList],
+    ["quotes", "Quotes & Approvals", CheckCircle2], ["invoices", "Invoices", Receipt], ["payments", "Payments", CreditCard],
+    ["tracking", "Delivery Tracking", Truck], ["messages", "Messages", MessageSquare], ["documents", "Documents", FileText],
+    ["profile", "Profile", Settings],
+  ];
+  return (
+    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white h-full flex flex-col">
+      <div className="p-5 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#0F1C2E] text-white font-semibold text-sm">YP</div>
+          <span className="text-sm font-semibold text-[#0F1C2E]">YourPlug</span>
+        </div>
+      </div>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {customerNav.map(([key, label, Icon]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${tab === key ? "bg-[#0F1C2E] text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+            <Icon size={16} /> {label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-slate-200">
+        <button onClick={() => { setSession(null); setNav("home"); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-50">
+          <LogOut size={16} /> Log out
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function DashTopbar({ title, name }) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-200 bg-white px-8 py-4">
+      <h1 className="text-lg font-medium text-[#0F1C2E]">{title}</h1>
+      <div className="flex items-center gap-4">
+        <Bell size={18} className="text-slate-400" />
+        <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">{name.split(" ").map(n => n[0]).join("")}</div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone = "default" }) {
+  const tones = { default: "text-[#0F1C2E]", orange: "text-amber-600", green: "text-emerald-600", blue: "text-sky-600" };
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold ${tones[tone]}`}>{value}</p>
+    </div>
+  );
+}
+
+function CustomerOverview({ myRequests, setTab, setSelected }) {
+  const count = s => myRequests.filter(r => r.status === s).length;
+  return (
+    <div className="p-8 space-y-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard label="Active requests" value={myRequests.filter(r => !["Completed", "Cancelled"].includes(r.status)).length} />
+        <MetricCard label="Awaiting approval" value={count("Awaiting Approval")} tone="orange" />
+        <MetricCard label="Awaiting payment" value={count("Awaiting Payment")} tone="orange" />
+        <MetricCard label="In transit" value={count("In Transit")} tone="blue" />
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex items-center gap-2 text-[#0F8B75] font-medium"><Wallet size={18} /> YourPlug has saved you KSh 12,400 across completed procurements.</div>
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-medium text-[#0F1C2E]">Recent activity</p>
+          <button onClick={() => setTab("requests")} className="text-sm text-[#0F8B75] font-medium">View all</button>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+          {myRequests.map(r => (
+            <button key={r.id} onClick={() => { setSelected(r.id); setTab("detail"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
+              <div>
+                <p className="text-sm font-medium text-[#0F1C2E]">{r.item}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{r.id} · {r.created}</p>
+              </div>
+              <div className="flex items-center gap-3"><UrgencyTag urgency={r.urgency} /><StatusBadge status={r.status} /></div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequestDetail({ req, setTab }) {
+  if (!req) return null;
+  return (
+    <div className="p-8 max-w-4xl space-y-8">
+      <button onClick={() => setTab("requests")} className="text-sm text-slate-500">← Back to My Requests</button>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs text-slate-400">{req.id}</p>
+          <h2 className="text-2xl font-semibold text-[#0F1C2E] mt-1">{req.item}</h2>
+        </div>
+        <div className="flex items-center gap-2"><UrgencyTag urgency={req.urgency} /><StatusBadge status={req.status} /></div>
+      </div>
+
+      {req.quotes.length > 0 && req.status === "Awaiting Approval" && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-6">
+          <p className="font-medium text-[#0F1C2E]">Recommended: {req.recommended}</p>
+          <p className="text-sm text-slate-600 mt-1">Best overall value based on price, reliability, specifications, delivery and warranty.</p>
+          <div className="mt-4 grid sm:grid-cols-2 gap-3">
+            <div className="bg-white rounded-lg p-4 text-sm space-y-1">
+              <div className="flex justify-between"><span className="text-slate-500">Item price</span><Money value={req.value} /></div>
+              <div className="flex justify-between"><span className="text-slate-500">YourPlug fee</span><span>KSh {Math.round(req.value * 0.06).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Delivery fee</span><span>KSh 800</span></div>
+              <div className="flex justify-between font-medium pt-2 border-t border-slate-100 mt-2"><span>Total</span><Money value={req.value + Math.round(req.value * 0.06) + 800} /></div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <PrimaryButton icon={CheckCircle2}>Approve & Pay</PrimaryButton>
+              <SecondaryButton>Request Another Option</SecondaryButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="font-medium text-[#0F1C2E] mb-3">Progress</p>
+        <div className="flex flex-wrap gap-4">
+          {req.steps.map(([label, s], i) => (
+            <div key={i} className="flex items-center gap-2">
+              {s === true ? <CheckCircle2 size={16} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={16} className="text-amber-500 fill-amber-500" /> : <Circle size={16} className="text-slate-300" />}
+              <span className={`text-xs ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {req.quotes.length > 0 && (
+        <div>
+          <p className="font-medium text-[#0F1C2E] mb-3">Supplier comparison</p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-xs"><tr>
+                <th className="text-left px-4 py-3">Supplier</th><th className="text-left px-4 py-3">Price</th>
+                <th className="text-left px-4 py-3">Delivery</th><th className="text-left px-4 py-3">Warranty</th>
+                <th className="text-left px-4 py-3">Reliability</th><th className="text-left px-4 py-3">Score</th>
+              </tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {req.quotes.map(q => (
+                  <tr key={q.supplier} className={q.supplier === req.recommended ? "bg-emerald-50/50" : ""}>
+                    <td className="px-4 py-3 font-medium text-[#0F1C2E]">{q.supplier}{q.supplier === req.recommended && <span className="ml-2 text-[10px] font-medium text-emerald-700 bg-emerald-100 rounded px-1.5 py-0.5">Recommended</span>}</td>
+                    <td className="px-4 py-3"><Money value={q.price} /></td>
+                    <td className="px-4 py-3">{q.delivery}</td>
+                    <td className="px-4 py-3">{q.warranty}</td>
+                    <td className="px-4 py-3">{q.reliability}/100</td>
+                    <td className="px-4 py-3 font-medium">{q.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="font-medium text-[#0F1C2E] mb-3">Timeline</p>
+        <div className="space-y-4">
+          {req.timeline.map(([time, event], i) => (
+            <div key={i} className="flex gap-4 text-sm">
+              <span className="text-slate-400 w-14 shrink-0">{time}</span>
+              <span className="text-slate-700">{event}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewRequestWizard() {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" });
+  const [aiRun, setAiRun] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  if (step === 5) {
+    return (
+      <div className="p-8 max-w-lg">
+        <CheckCircle2 size={40} className="text-[#0F8B75]" />
+        <h2 className="text-2xl font-semibold text-[#0F1C2E] mt-4">Request submitted</h2>
+        <p className="text-slate-600 mt-2">Reference <span className="font-medium text-[#0F1C2E]">YPM-202609-00142</span>. An agent will review it and begin supplier research shortly. You'll be notified at each step.</p>
+        <SecondaryButton className="mt-6" onClick={() => { setStep(1); setForm({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" }); setAiRun(false); }}>Submit another request</SecondaryButton>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8 max-w-2xl">
+      <div className="flex items-center gap-2 mb-8">
+        {["What you need", "Supporting info", "Delivery", "Review"].map((s, i) => (
+          <div key={s} className="flex items-center gap-2">
+            <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium ${step === i + 1 ? "bg-[#0F1C2E] text-white" : step > i + 1 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>{step > i + 1 ? <CheckCircle2 size={14} /> : i + 1}</div>
+            {i < 3 && <div className={`w-8 h-px ${step > i + 1 ? "bg-emerald-300" : "bg-slate-200"}`} />}
+          </div>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-5">
+          <h2 className="text-xl font-medium text-[#0F1C2E]">What do you need?</h2>
+          <textarea rows={3} value={form.desc} onChange={e => set("desc", e.target.value)} placeholder="Describe it naturally — e.g. 'I need a commercial display fridge for my shop, around 300–500L'"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <PrimaryButton className="!inline-flex" onClick={() => setAiRun(true)} icon={Sparkles}>Let AI structure this</PrimaryButton>
+
+          {aiRun && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-5 space-y-2 text-sm">
+              <p className="font-medium text-[#0F1C2E] flex items-center gap-2"><Sparkles size={14} className="text-sky-600" /> AI-assisted specification — please review before submitting</p>
+              <div className="grid sm:grid-cols-2 gap-2 mt-2">
+                <div><span className="text-slate-500">Item</span><p className="font-medium text-[#0F1C2E]">Commercial Display Refrigerator <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded px-1">from your description</span></p></div>
+                <div><span className="text-slate-500">Estimated capacity</span><p className="font-medium text-[#0F1C2E]">300–500L <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded px-1">from your description</span></p></div>
+                <div><span className="text-slate-500">Purpose</span><p className="font-medium text-[#0F1C2E]">Retail shop <span className="text-[10px] text-sky-700 bg-sky-100 rounded px-1">AI-inferred</span></p></div>
+                <div><span className="text-slate-500">Condition</span><p className="font-medium text-[#0F1C2E]">New <span className="text-[10px] text-sky-700 bg-sky-100 rounded px-1">AI-inferred</span></p></div>
+              </div>
+              <div className="mt-3 rounded-lg bg-white border border-amber-200 px-3 py-2 text-amber-800 text-xs flex items-center gap-2">
+                <AlertTriangle size={14} /> Missing — please confirm: dimensions, voltage, preferred brand
+              </div>
+            </div>
+          )}
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div><label className="text-xs text-slate-500">Item name</label><input value={form.item} onChange={e => set("item", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+            <div><label className="text-xs text-slate-500">Quantity</label><input type="number" value={form.qty} onChange={e => set("qty", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+            <div><label className="text-xs text-slate-500">Budget (KES)</label><input value={form.budget} onChange={e => set("budget", e.target.value)} placeholder="Optional" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
+            <div><label className="text-xs text-slate-500">Urgency</label>
+              <select value={form.urgency} onChange={e => set("urgency", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                <option>Normal</option><option>High</option><option>Urgent</option><option>Emergency</option>
+              </select>
+            </div>
+            <div><label className="text-xs text-slate-500">Procurement scope</label>
+              <select value={form.scope} onChange={e => set("scope", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                <option>Local</option><option>International</option>
+              </select>
+            </div>
+          </div>
+          <PrimaryButton onClick={() => setStep(2)}>Continue</PrimaryButton>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-5">
+          <h2 className="text-xl font-medium text-[#0F1C2E]">Add supporting information</h2>
+          <p className="text-sm text-slate-500">Photos, screenshots, product links, catalogues or existing quotations — anything that helps us find the right match.</p>
+          <div className="rounded-xl border-2 border-dashed border-slate-300 p-10 text-center text-slate-400">
+            <Upload className="mx-auto mb-2" size={22} />
+            <p className="text-sm">Drag and drop files, or click to browse</p>
+          </div>
+          <div className="flex justify-between"><SecondaryButton onClick={() => setStep(1)}>Back</SecondaryButton><PrimaryButton onClick={() => setStep(3)}>Continue</PrimaryButton></div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-5">
+          <h2 className="text-xl font-medium text-[#0F1C2E]">Delivery</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <input placeholder="Recipient name" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input placeholder="Phone number" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input value={form.delivery} onChange={e => set("delivery", e.target.value)} placeholder="Delivery address" className="sm:col-span-2 rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input placeholder="Building / estate" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input placeholder="Apartment / office" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          </div>
+          <div className="flex gap-2 text-xs">
+            {["Home", "Office", "Warehouse", "Other"].map(t => <span key={t} className="rounded-full border border-slate-200 px-3 py-1 text-slate-600">{t}</span>)}
+          </div>
+          <div className="flex justify-between"><SecondaryButton onClick={() => setStep(2)}>Back</SecondaryButton><PrimaryButton onClick={() => setStep(4)}>Continue</PrimaryButton></div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="space-y-5">
+          <h2 className="text-xl font-medium text-[#0F1C2E]">Review request</h2>
+          <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
+            {[["Item", form.item || "Commercial Display Refrigerator"], ["Quantity", form.qty], ["Budget", form.budget || "Not specified"], ["Urgency", form.urgency], ["Scope", form.scope], ["Delivery to", form.delivery || "Not specified"]].map(([k, v]) => (
+              <div key={k} className="flex justify-between px-4 py-3"><span className="text-slate-500">{k}</span><span className="font-medium text-[#0F1C2E]">{v}</span></div>
+            ))}
+          </div>
+          <div className="flex justify-between"><SecondaryButton onClick={() => setStep(3)}>Back</SecondaryButton><PrimaryButton onClick={() => setStep(5)} icon={CheckCircle2}>Submit request</PrimaryButton></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomerDashboard({ setNav, setSession, session }) {
+  const [tab, setTab] = useState("overview");
+  const [selected, setSelected] = useState(null);
+  const [liveRequests, setLiveRequests] = useState(null);
+  const [liveError, setLiveError] = useState("");
+
+  React.useEffect(() => {
+    if (!session.token) return;
+    api.myRequests(session.token)
+      .then(data => setLiveRequests(data.map(r => ({
+        id: r.ref, item: r.item, customer: session.name, agent: r.agent?.name || "Unassigned",
+        status: r.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+        urgency: r.urgency.charAt(0) + r.urgency.slice(1).toLowerCase(),
+        value: r.quotes?.[0]?.price || 0, currency: r.currency, created: r.createdAt.slice(0, 10),
+        steps: [["Request Submitted", true]], timeline: r.events?.map(e => ["", e.label]) || [],
+        quotes: [], recommended: null,
+      }))))
+      .catch(err => setLiveError(err.message));
+  }, [session.token]);
+
+  const demoRequests = REQUESTS.filter(r => r.customer === session.name);
+  const myRequests = session.token ? (liveRequests ?? []) : demoRequests;
+  const allSource = session.token ? (liveRequests || []) : REQUESTS;
+  const selectedReq = allSource.find(r => r.id === selected);
+
+  const titles = { overview: "Dashboard", new: "New Request", requests: "My Requests", quotes: "Quotes & Approvals", invoices: "Invoices", payments: "Payments", tracking: "Delivery Tracking", messages: "Messages", documents: "Documents", profile: "Profile", detail: selectedReq?.item || "Request" };
+
+  return (
+    <div className="flex h-screen">
+      <DashSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashTopbar title={titles[tab]} name={session.name} />
+        {session.token && (
+          <div className={`px-8 py-2 text-xs ${liveError ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {liveError ? `Couldn't load live data: ${liveError}` : "Connected to the live API — showing real data from the database."}
+          </div>
+        )}
+        {!session.token && (
+          <div className="px-8 py-2 text-xs bg-amber-50 text-amber-700">Demo mode — showing sample data, not connected to a backend.</div>
+        )}
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          {tab === "overview" && <CustomerOverview myRequests={myRequests} setTab={setTab} setSelected={setSelected} />}
+          {tab === "new" && <div className="bg-white h-full"><NewRequestWizard /></div>}
+          {tab === "requests" && (
+            <div className="p-8">
+              <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+                {myRequests.map(r => (
+                  <button key={r.id} onClick={() => { setSelected(r.id); setTab("detail"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
+                    <div><p className="text-sm font-medium text-[#0F1C2E]">{r.item}</p><p className="text-xs text-slate-400 mt-0.5">{r.id} · {r.created}</p></div>
+                    <div className="flex items-center gap-3"><Money value={r.value} /><StatusBadge status={r.status} /></div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {tab === "detail" && <div className="bg-white h-full"><RequestDetail req={selectedReq} setTab={setTab} /></div>}
+          {tab === "quotes" && (
+            <div className="p-8 space-y-4">
+              {myRequests.filter(r => r.status === "Awaiting Approval").map(r => (
+                <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-6 flex items-center justify-between">
+                  <div><p className="font-medium text-[#0F1C2E]">{r.item}</p><p className="text-xs text-slate-400">{r.id}</p></div>
+                  <button onClick={() => { setSelected(r.id); setTab("detail"); }} className="text-sm font-medium text-[#0F8B75]">Review & approve →</button>
+                </div>
+              ))}
+              {myRequests.filter(r => r.status === "Awaiting Approval").length === 0 && <p className="text-sm text-slate-500">Nothing awaiting your approval right now.</p>}
+            </div>
+          )}
+          {tab === "invoices" && (
+            <div className="p-8">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Invoice</th><th className="text-left px-4 py-3">Request</th><th className="text-left px-4 py-3">Amount</th><th className="text-left px-4 py-3">Status</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {myRequests.filter(r => r.value).map((r, i) => (
+                      <tr key={r.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">INV-{1820 + i}</td><td className="px-4 py-3">{r.item}</td><td className="px-4 py-3"><Money value={r.value} /></td>
+                        <td className="px-4 py-3"><StatusBadge status={["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed"} /></td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {tab === "payments" && (
+            <div className="p-8 max-w-md">
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <p className="font-medium text-[#0F1C2E] mb-3">Pay via M-Pesa</p>
+                <p className="text-sm text-slate-500 mb-4">Paybill 400200 · Account reference is unique per invoice.</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-500">Invoice</span><span>INV-001829</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Account reference</span><span className="font-medium text-[#0F1C2E]">YPM-001829</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Amount</span><Money value={312000} /></div>
+                </div>
+              </div>
+            </div>
+          )}
+          {tab === "tracking" && (
+            <div className="p-8 space-y-4">
+              {myRequests.filter(r => ["In Transit", "Dispatched", "Delivered"].includes(r.status)).map(r => (
+                <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-6">
+                  <div className="flex items-center justify-between mb-4"><p className="font-medium text-[#0F1C2E]">{r.item}</p><StatusBadge status={r.status} /></div>
+                  <div className="flex flex-wrap gap-4">
+                    {r.steps.map(([label, s], i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        {s === true ? <CheckCircle2 size={16} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={16} className="text-amber-500 fill-amber-500" /> : <Circle size={16} className="text-slate-300" />}
+                        <span className={`text-xs ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab === "messages" && (
+            <div className="p-8 max-w-xl">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+                {[["Customer", "Can you get the black version?"], ["Agent Collins", "Yes. I am checking availability."], ["Agent Collins", "Black is available from Supplier B for KSh 2,000 more."], ["Customer", "Approved."]].map(([who, msg], i) => (
+                  <div key={i} className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${who === "Customer" ? "ml-auto bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-700"}`}>{msg}</div>
+                ))}
+              </div>
+              <div className="mt-4 flex gap-2"><input placeholder="Write a message" className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /><PrimaryButton className="!px-4">Send</PrimaryButton></div>
+            </div>
+          )}
+          {tab === "documents" && (
+            <div className="p-8">
+              <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+                {["Purchase order — YPM-202609-00127.pdf", "Supplier invoice — ABC Electronics.pdf", "Proof of delivery — YPM-202608-00098.pdf"].map(d => (
+                  <div key={d} className="flex items-center justify-between px-5 py-3.5 text-sm"><span className="flex items-center gap-2 text-slate-700"><FileText size={15} className="text-slate-400" /> {d}</span><button className="text-[#0F8B75] font-medium">Download</button></div>
+                ))}
+              </div>
+            </div>
+          )}
+          {tab === "profile" && (
+            <div className="p-8 max-w-md space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-[#0F1C2E]">{session.name}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Email</span><span>{CUSTOMERS.find(c => c.name === session.name)?.email}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Phone</span><span>{CUSTOMERS.find(c => c.name === session.name)?.phone}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Two-factor authentication</span><span className="text-emerald-600 font-medium">Enabled</span></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* ADMIN DASHBOARD                                                        */
+/* ---------------------------------------------------------------------- */
+
+function AdminSidebar({ tab, setTab, setSession, setNav }) {
+  const nav = [
+    ["overview", "Overview", LayoutGrid], ["orders", "Orders", ClipboardList], ["suppliers", "Suppliers", Package],
+    ["agents", "Agents", Users], ["invoices", "Invoices", Receipt], ["reports", "Reports", BarChart3],
+    ["audit", "Audit Logs", ShieldCheck],
+  ];
+  return (
+    <aside className="w-60 shrink-0 border-r border-slate-200 bg-[#0F1C2E] text-slate-300 h-full flex flex-col">
+      <div className="p-5 border-b border-white/10">
+        <div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-white font-semibold text-sm">YP</div><span className="text-sm font-semibold text-white">Operations</span></div>
+      </div>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {nav.map(([key, label, Icon]) => (
+          <button key={key} onClick={() => setTab(key)} className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${tab === key ? "bg-white/10 text-white" : "hover:bg-white/5"}`}>
+            <Icon size={16} /> {label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-white/10">
+        <button onClick={() => { setSession(null); setNav("home"); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"><LogOut size={16} /> Log out</button>
+      </div>
+    </aside>
+  );
+}
+
+function AdminOverview({ setTab, setSelected }) {
+  const total = REQUESTS.length;
+  const urgent = REQUESTS.filter(r => ["Urgent", "Emergency"].includes(r.urgency) && !["Completed", "Cancelled"].includes(r.status)).length;
+  const awaitingApproval = REQUESTS.filter(r => r.status === "Awaiting Approval").length;
+  const awaitingPayment = REQUESTS.filter(r => r.status === "Awaiting Payment").length;
+  const inTransit = REQUESTS.filter(r => r.status === "In Transit").length;
+  const completed = REQUESTS.filter(r => r.status === "Completed").length;
+  const revenue = REQUESTS.reduce((s, r) => s + (r.value || 0) * 0.06, 0);
+
+  return (
+    <div className="p-8 space-y-8">
+      <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <MetricCard label="Total orders" value={total} />
+        <MetricCard label="Urgent orders" value={urgent} tone="orange" />
+        <MetricCard label="Awaiting approval" value={awaitingApproval} tone="orange" />
+        <MetricCard label="Awaiting payment" value={awaitingPayment} tone="orange" />
+        <MetricCard label="In transit" value={inTransit} tone="blue" />
+        <MetricCard label="Completed" value={completed} tone="green" />
+      </div>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <MetricCard label="Procurement fees (est.)" value={`KSh ${Math.round(revenue).toLocaleString()}`} tone="green" />
+        <MetricCard label="Customer savings tracked" value="KSh 23,000" tone="green" />
+        <MetricCard label="Avg. procurement time" value="1.8 days" />
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-medium text-[#0F1C2E]">Priority queue</p>
+          <button onClick={() => setTab("orders")} className="text-sm text-[#0F8B75] font-medium">View all orders</button>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+          {[...REQUESTS].sort((a, b) => (["Emergency", "Urgent", "High", "Normal"].indexOf(a.urgency)) - (["Emergency", "Urgent", "High", "Normal"].indexOf(b.urgency))).map(r => (
+            <button key={r.id} onClick={() => { setSelected(r.id); setTab("workspace"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
+              <div className="flex items-center gap-3">
+                <UrgencyTag urgency={r.urgency} />
+                <div><p className="text-sm font-medium text-[#0F1C2E]">{r.item}</p><p className="text-xs text-slate-400">{r.id} · {r.customer} · Agent {r.agent}</p></div>
+              </div>
+              <StatusBadge status={r.status} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminOrders({ setTab, setSelected }) {
+  const [filter, setFilter] = useState("All");
+  const statuses = ["All", ...Array.from(new Set(REQUESTS.map(r => r.status)))];
+  const rows = filter === "All" ? REQUESTS : REQUESTS.filter(r => r.status === filter);
+  return (
+    <div className="p-8">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <Filter size={14} className="text-slate-400" />
+        {statuses.map(s => (
+          <button key={s} onClick={() => setFilter(s)} className={`rounded-full px-3 py-1 text-xs ${filter === s ? "bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-600"}`}>{s}</button>
+        ))}
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr>
+            <th className="text-left px-4 py-3">ID</th><th className="text-left px-4 py-3">Item</th><th className="text-left px-4 py-3">Customer</th>
+            <th className="text-left px-4 py-3">Agent</th><th className="text-left px-4 py-3">Urgency</th><th className="text-left px-4 py-3">Value</th><th className="text-left px-4 py-3">Status</th>
+          </tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.map(r => (
+              <tr key={r.id} onClick={() => { setSelected(r.id); setTab("workspace"); }} className="cursor-pointer hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-[#0F1C2E]">{r.id}</td><td className="px-4 py-3">{r.item}</td><td className="px-4 py-3">{r.customer}</td>
+                <td className="px-4 py-3">{r.agent}</td><td className="px-4 py-3"><UrgencyTag urgency={r.urgency} /></td><td className="px-4 py-3"><Money value={r.value} /></td>
+                <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminWorkspace({ req, setTab }) {
+  if (!req) return null;
+  const actions = ["Find Suppliers", "Request Quote", "Compare Suppliers", "Recommend Supplier", "Negotiate", "Request Customer Approval", "Generate Invoice", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
+  return (
+    <div className="p-8 max-w-5xl space-y-8">
+      <button onClick={() => setTab("orders")} className="text-sm text-slate-500">← Back to Orders</button>
+      <div className="flex items-start justify-between">
+        <div><p className="text-xs text-slate-400">{req.id}</p><h2 className="text-2xl font-semibold text-[#0F1C2E]">{req.item}</h2><p className="text-sm text-slate-500 mt-1">{req.customer} · Agent {req.agent}</p></div>
+        <div className="flex items-center gap-2"><UrgencyTag urgency={req.urgency} /><StatusBadge status={req.status} /></div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {actions.map(a => <button key={a} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">{a}</button>)}
+      </div>
+
+      {req.quotes.length > 0 && (
+        <div>
+          <p className="font-medium text-[#0F1C2E] mb-3">Supplier quotations</p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Supplier</th><th className="text-left px-4 py-3">Price</th><th className="text-left px-4 py-3">Delivery</th><th className="text-left px-4 py-3">Warranty</th><th className="text-left px-4 py-3">Reliability</th><th className="text-left px-4 py-3">Best value score</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {req.quotes.map(q => (
+                  <tr key={q.supplier} className={q.supplier === req.recommended ? "bg-emerald-50/50" : ""}>
+                    <td className="px-4 py-3 font-medium text-[#0F1C2E]">{q.supplier}</td><td className="px-4 py-3"><Money value={q.price} /></td>
+                    <td className="px-4 py-3">{q.delivery}</td><td className="px-4 py-3">{q.warranty}</td><td className="px-4 py-3">{q.reliability}/100</td>
+                    <td className="px-4 py-3 font-medium">{q.score} {q.supplier === req.recommended && <Award size={13} className="inline text-emerald-600 ml-1" />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Scoring weights: price 35%, reliability 25%, specification match 20%, delivery 10%, warranty 10% — configurable in Settings.</p>
+        </div>
+      )}
+
+      <div>
+        <p className="font-medium text-[#0F1C2E] mb-3">Timeline (immutable audit trail)</p>
+        <div className="space-y-3">
+          {req.timeline.map(([time, event], i) => (
+            <div key={i} className="flex gap-4 text-sm"><span className="text-slate-400 w-14 shrink-0">{time}</span><span className="text-slate-700">{event}</span></div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="font-medium text-[#0F1C2E] mb-3">Internal notes <span className="text-xs font-normal text-slate-400">(never visible to customer)</span></p>
+        <textarea rows={3} placeholder="Add an internal note…" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+      </div>
+    </div>
+  );
+}
+
+function AdminSuppliers() {
+  return (
+    <div className="p-8">
+      <div className="grid md:grid-cols-3 gap-5">
+        {SUPPLIERS.map(s => (
+          <div key={s.id} className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-[#0F1C2E]">{s.name}</p>
+              {s.verified && <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Verified</span>}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">{s.category} · {s.location}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              {[["Reliability", s.reliability], ["Price competitiveness", s.price], ["Delivery", s.delivery], ["Warranty", s.warranty]].map(([k, v]) => (
+                <div key={k}>
+                  <div className="flex justify-between text-slate-500 mb-1"><span>{k}</span><span>{v}</span></div>
+                  <div className="h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-[#0F8B75]" style={{ width: `${v}%` }} /></div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-between text-xs text-slate-500"><span>{s.deals} completed deals</span><span>{s.complaints} complaints</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminAgents() {
+  return (
+    <div className="p-8">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Agent</th><th className="text-left px-4 py-3">Active orders</th><th className="text-left px-4 py-3">Completed</th><th className="text-left px-4 py-3">Rating</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {AGENTS.map(a => (
+              <tr key={a.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">{a.name}</td><td className="px-4 py-3">{a.active}</td><td className="px-4 py-3">{a.completed}</td>
+                <td className="px-4 py-3 flex items-center gap-1"><Star size={12} className="text-amber-400 fill-amber-400" /> {a.rating}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminInvoices() {
+  return (
+    <div className="p-8">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Invoice</th><th className="text-left px-4 py-3">Customer</th><th className="text-left px-4 py-3">Reference</th><th className="text-left px-4 py-3">Amount</th><th className="text-left px-4 py-3">Status</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {REQUESTS.filter(r => r.value).map((r, i) => (
+              <tr key={r.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">INV-{1820 + i}</td><td className="px-4 py-3">{r.customer}</td>
+                <td className="px-4 py-3 text-slate-500">YPM-{1820 + i}</td><td className="px-4 py-3"><Money value={r.value} /></td>
+                <td className="px-4 py-3"><StatusBadge status={["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed"} /></td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminReports() {
+  return (
+    <div className="p-8 grid md:grid-cols-2 gap-5">
+      {[["Orders over time", "Steady week-on-week growth, urgent orders up 12%."], ["Revenue & procurement fees", "Fee revenue tracking ahead of last month by 8%."], ["Supplier performance", "ABC Electronics leads on reliability and delivery speed."], ["Customer savings", "KSh 143,500 saved across completed procurements this quarter."]].map(([t, b]) => (
+        <div key={t} className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="font-medium text-[#0F1C2E]">{t}</p>
+          <div className="mt-4 h-28 rounded-lg bg-slate-50 flex items-end gap-1 p-2">
+            {[40, 55, 35, 70, 60, 90, 75].map((h, i) => <div key={i} className="flex-1 rounded-t bg-[#0F8B75]/70" style={{ height: `${h}%` }} />)}
+          </div>
+          <p className="text-xs text-slate-500 mt-3">{b}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdminAudit() {
+  const logs = [
+    ["09:12", "system", "request.created", "YPM-202609-00142"],
+    ["09:25", "admin.collins", "agent.assigned", "YPM-202609-00127"],
+    ["11:10", "system", "payment.confirmed", "INV-001829"],
+    ["11:15", "admin.collins", "purchase_order.created", "PO-3391"],
+    ["07:42", "admin.collins", "invoice.sent", "INV-001842"],
+  ];
+  return (
+    <div className="p-8">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Time</th><th className="text-left px-4 py-3">User</th><th className="text-left px-4 py-3">Action</th><th className="text-left px-4 py-3">Object</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {logs.map((l, i) => <tr key={i}>{l.map((c, j) => <td key={j} className="px-4 py-3 text-slate-700">{c}</td>)}</tr>)}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-slate-400 mt-3">Audit events are immutable and retained for compliance review.</p>
+    </div>
+  );
+}
+
+function AdminDashboard({ setNav, setSession }) {
+  const [tab, setTab] = useState("overview");
+  const [selected, setSelected] = useState(null);
+  const selectedReq = REQUESTS.find(r => r.id === selected);
+  const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs" };
+  return (
+    <div className="flex h-screen">
+      <AdminSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashTopbar title={titles[tab]} name="Admin" />
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          {tab === "overview" && <AdminOverview setTab={setTab} setSelected={setSelected} />}
+          {tab === "orders" && <AdminOrders setTab={setTab} setSelected={setSelected} />}
+          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} /></div>}
+          {tab === "suppliers" && <AdminSuppliers />}
+          {tab === "agents" && <AdminAgents />}
+          {tab === "invoices" && <AdminInvoices />}
+          {tab === "reports" && <AdminReports />}
+          {tab === "audit" && <AdminAudit />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* ROOT                                                                   */
+/* ---------------------------------------------------------------------- */
+
+export default function App() {
+  const [nav, setNav] = useState("home");
+  const [session, setSession] = useState(null);
+
+  const handleAuth = (role, data = {}) => {
+    if (role === "admin") { setSession({ role: "admin", name: data.name || "Admin", token: data.token || null }); setNav("admin"); }
+    else { setSession({ role: "customer", name: data.name || "James Mwangi", token: data.token || null }); setNav("dashboard"); }
+  };
+
+  if (session && nav === "dashboard") return <CustomerDashboard setNav={setNav} setSession={setSession} session={session} />;
+  if (session && nav === "admin") return <AdminDashboard setNav={setNav} setSession={setSession} />;
+
+  const pages = {
+    home: <HomePage setNav={setNav} />, how: <HowItWorksPage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
+    corporate: <CorporatePage setNav={setNav} />, international: <InternationalPage setNav={setNav} />, urgent: <UrgentPage setNav={setNav} />,
+    about: <AboutPage />, contact: <ContactPage />, faq: <FAQPage />, track: <TrackOrderPage />,
+    login: <AuthPage mode="login" setNav={setNav} onAuth={handleAuth} />, register: <AuthPage mode="register" setNav={setNav} onAuth={handleAuth} />,
+  };
+
+  return (
+    <div className="font-sans text-slate-900 bg-white min-h-screen">
+      <SiteHeader nav={nav} setNav={setNav} session={session} setSession={setSession} />
+      {pages[nav] || pages.home}
+      <SiteFooter setNav={setNav} />
+    </div>
+  );
+}

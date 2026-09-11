@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yourplug
+      POSTGRES_PASSWORD: yourplug
+      POSTGRES_DB: yourplug
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yourplug"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://yourplug:yourplug@postgres:5432/yourplug?schema=public"
+      JWT_ACCESS_SECRET: "dev-access-secret-change-me"
+      JWT_REFRESH_SECRET: "dev-refresh-secret-change-me"
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      PORT: "4000"
+      CORS_ORIGIN: "http://localhost:5173"
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_URL: "http://localhost:4000/api"
+
+volumes:
+  pgdata:

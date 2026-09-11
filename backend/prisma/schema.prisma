@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  AGENT
+  ADMIN
+}
+
+enum Urgency {
+  NORMAL
+  HIGH
+  URGENT
+  EMERGENCY
+}
+
+enum Scope {
+  LOCAL
+  INTERNATIONAL
+}
+
+enum RequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SUPPLIER_RESEARCH
+  QUOTATION_READY
+  AWAITING_APPROVAL
+  AWAITING_PAYMENT
+  PURCHASED
+  DISPATCHED
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  ISSUE_REPORTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  phone            String    @unique
+  passwordHash     String
+  role             Role      @default(CUSTOMER)
+  emailVerifiedAt  DateTime?
+  phoneVerifiedAt  DateTime?
+  failedLogins     Int       @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime  @default(now())
+
+  requestsAsCustomer ProcurementRequest[] @relation("CustomerRequests")
+  requestsAsAgent    ProcurementRequest[] @relation("AgentRequests")
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]
+  verificationCodes  VerificationCode[]
+}
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  channel   String   // "email" | "phone"
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  location    String
+  verified    Boolean  @default(false)
+  reliability Int      @default(80)
+  priceScore  Int      @default(80)
+  delivery    Int      @default(80)
+  warranty    Int      @default(80)
+  createdAt   DateTime @default(now())
+
+  quotes SupplierQuote[]
+}
+
+model ProcurementRequest {
+  id          String        @id @default(cuid())
+  ref         String        @unique
+  item        String
+  description String?
+  quantity    Int           @default(1)
+  budget      Int?
+  currency    String        @default("KES")
+  urgency     Urgency       @default(NORMAL)
+  scope       Scope         @default(LOCAL)
+  status      RequestStatus @default(SUBMITTED)
+  deliveryAddress String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customerId String
+  customer   User   @relation("CustomerRequests", fields: [customerId], references: [id])
+
+  agentId String?
+  agent   User?   @relation("AgentRequests", fields: [agentId], references: [id])
+
+  quotes    SupplierQuote[]
+  invoices  Invoice[]
+  events    RequestEvent[]
+}
+
+model SupplierQuote {
+  id                String   @id @default(cuid())
+  requestId         String
+  request           ProcurementRequest @relation(fields: [requestId], references: [id])
+  supplierId        String
+  supplier          Supplier @relation(fields: [supplierId], references: [id])
+  price             Int
+  deliveryEstimate  String
+  warrantyTerms     String
+  score             Int
+  recommended       Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}
+
+model RequestEvent {
+  id        String   @id @default(cuid())
+  requestId String
+  request   ProcurementRequest @relation(fields: [requestId], references: [id])
+  label     String
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  number            String        @unique
+  requestId         String
+  request           ProcurementRequest @relation(fields: [requestId], references: [id])
+  subtotal          Int
+  serviceFee        Int
+  deliveryFee       Int
+  total             Int
+  currency          String        @default("KES")
+  status            InvoiceStatus @default(DRAFT)
+  paymentReference  String        @unique
+  createdAt         DateTime      @default(now())
+
+  payments Payment[]
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  provider       String   @default("mpesa")
+  amount         Int
+  status         String   @default("pending")
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  objectType String
+  objectId   String
+  createdAt  DateTime @default(now())
+}
