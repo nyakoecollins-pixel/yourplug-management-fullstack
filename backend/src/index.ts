@@ -12,6 +12,14 @@ import { paymentsRouter } from "./routes/payments.js";
 
 const app = express();
 
+// Render (and most PaaS platforms) sit behind a reverse proxy that sets
+// X-Forwarded-For. Without this, express-rate-limit throws
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request instead of rate-limiting
+// correctly by real client IP. `1` trusts exactly one hop (Render's own proxy),
+// which is the safe setting here — trusting further hops would let a client
+// spoof their own IP via the header.
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
