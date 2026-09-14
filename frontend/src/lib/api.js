@@ -49,4 +49,10 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(subtotal ? { requestId, subtotal } : { requestId }),
     }),
+  createRequest: (token, payload) =>
+    request("/requests", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }),
 };

@@ -862,19 +862,53 @@ function RequestDetail({ req, setTab }) {
   );
 }
 
-function NewRequestWizard() {
+function NewRequestWizard({ session, onSubmitted }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" });
   const [aiRun, setAiRun] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [createdRef, setCreatedRef] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const submit = async () => {
+    if (!session.token) {
+      // Demo mode — no backend session, so there's nothing real to write to.
+      setCreatedRef("YPM-202609-00142");
+      setStep(5);
+      return;
+    }
+    setSubmitting(true); setError("");
+    try {
+      const payload = {
+        item: form.item || form.desc.slice(0, 60) || "Untitled request",
+        description: form.desc || undefined,
+        quantity: Number(form.qty) || 1,
+        budget: form.budget ? Number(form.budget) : undefined,
+        currency: "KES",
+        urgency: form.urgency.toUpperCase(),
+        scope: form.scope.toUpperCase(),
+        deliveryAddress: form.delivery || undefined,
+      };
+      const created = await api.createRequest(session.token, payload);
+      setCreatedRef(created.ref);
+      setStep(5);
+      onSubmitted?.();
+    } catch (err) {
+      setError(err.message || "Couldn't submit your request. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (step === 5) {
     return (
       <div className="p-8 max-w-lg">
         <CheckCircle2 size={40} className="text-[#0F8B75]" />
         <h2 className="text-2xl font-semibold text-[#0F1C2E] mt-4">Request submitted</h2>
-        <p className="text-slate-600 mt-2">Reference <span className="font-medium text-[#0F1C2E]">YPM-202609-00142</span>. An agent will review it and begin supplier research shortly. You'll be notified at each step.</p>
-        <SecondaryButton className="mt-6" onClick={() => { setStep(1); setForm({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" }); setAiRun(false); }}>Submit another request</SecondaryButton>
+        <p className="text-slate-600 mt-2">Reference <span className="font-medium text-[#0F1C2E]">{createdRef}</span>. An agent will review it and begin supplier research shortly. You'll be notified at each step.</p>
+        {!session.token && <p className="text-xs text-amber-700 mt-3">Demo mode — this wasn't actually saved. Log in with a real account to submit for real.</p>}
+        <SecondaryButton className="mt-6" onClick={() => { setStep(1); setForm({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" }); setAiRun(false); setCreatedRef(""); }}>Submit another request</SecondaryButton>
       </div>
     );
   }
@@ -964,11 +998,15 @@ function NewRequestWizard() {
         <div className="space-y-5">
           <h2 className="text-xl font-medium text-[#0F1C2E]">Review request</h2>
           <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
-            {[["Item", form.item || "Commercial Display Refrigerator"], ["Quantity", form.qty], ["Budget", form.budget || "Not specified"], ["Urgency", form.urgency], ["Scope", form.scope], ["Delivery to", form.delivery || "Not specified"]].map(([k, v]) => (
+            {[["Item", form.item || form.desc.slice(0, 60) || "Not specified"], ["Quantity", form.qty], ["Budget", form.budget || "Not specified"], ["Urgency", form.urgency], ["Scope", form.scope], ["Delivery to", form.delivery || "Not specified"]].map(([k, v]) => (
               <div key={k} className="flex justify-between px-4 py-3"><span className="text-slate-500">{k}</span><span className="font-medium text-[#0F1C2E]">{v}</span></div>
             ))}
           </div>
-          <div className="flex justify-between"><SecondaryButton onClick={() => setStep(3)}>Back</SecondaryButton><PrimaryButton onClick={() => setStep(5)} icon={CheckCircle2}>Submit request</PrimaryButton></div>
+          {error && <p className="text-xs text-rose-600">{error}</p>}
+          {!session.token && <p className="text-xs text-amber-700">Demo mode — this will show a success screen but won't actually be saved.</p>}
+          <div className="flex justify-between"><SecondaryButton onClick={() => setStep(3)}>Back</SecondaryButton>
+            <PrimaryButton onClick={submit} disabled={submitting} icon={CheckCircle2}>{submitting ? "Submitting…" : "Submit request"}</PrimaryButton>
+          </div>
         </div>
       )}
     </div>
@@ -1154,7 +1192,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
   const [liveInvoices, setLiveInvoices] = useState(null);
   const [liveError, setLiveError] = useState("");
 
-  React.useEffect(() => {
+  const refreshRequests = React.useCallback(() => {
     if (!session.token) return;
     api.myRequests(session.token)
       .then(data => setLiveRequests(data.map(r => ({
@@ -1166,6 +1204,10 @@ function CustomerDashboard({ setNav, setSession, session }) {
         quotes: [], recommended: null,
       }))))
       .catch(err => setLiveError(err.message));
+  }, [session.token, session.name]);
+
+  const refreshInvoices = React.useCallback(() => {
+    if (!session.token) return;
     api.myInvoices(session.token)
       .then(data => setLiveInvoices(data.map(inv => ({
         id: inv.id, number: inv.number, item: inv.request.item, total: inv.total,
@@ -1173,6 +1215,11 @@ function CustomerDashboard({ setNav, setSession, session }) {
       }))))
       .catch(() => {});
   }, [session.token]);
+
+  React.useEffect(() => {
+    refreshRequests();
+    refreshInvoices();
+  }, [refreshRequests, refreshInvoices]);
 
   const demoRequests = REQUESTS.filter(r => r.customer === session.name);
   const myRequests = session.token ? (liveRequests ?? []) : demoRequests;
@@ -1196,7 +1243,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
         )}
         <div className="flex-1 overflow-y-auto bg-slate-50">
           {tab === "overview" && <CustomerOverview myRequests={myRequests} setTab={setTab} setSelected={setSelected} />}
-          {tab === "new" && <div className="bg-white h-full"><NewRequestWizard /></div>}
+          {tab === "new" && <div className="bg-white h-full"><NewRequestWizard session={session} onSubmitted={refreshRequests} /></div>}
           {tab === "requests" && (
             <div className="p-8">
               <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
