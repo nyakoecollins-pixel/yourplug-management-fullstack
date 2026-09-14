@@ -125,3 +125,44 @@ export function parseStkCallback(body: StkCallbackBody) {
     phone: find("PhoneNumber") ? String(find("PhoneNumber")) : undefined,
   };
 }
+
+/** Actively asks Safaricom for a transaction's status, instead of only
+ *  waiting for their callback — sandbox callbacks are known to be
+ *  unreliable, and this same fallback protects production too. */
+export async function queryStkPush(checkoutRequestId: string): Promise<{
+  resultCode: number | null;
+  resultDesc: string;
+}> {
+  const shortcode = process.env.MPESA_SHORTCODE;
+  const passkey = process.env.MPESA_PASSKEY;
+  if (!shortcode || !passkey) throw new Error("M-Pesa shortcode/passkey not configured.");
+
+  const token = await getAccessToken();
+  const ts = timestamp();
+  const password = Buffer.from(`${shortcode}${passkey}${ts}`).toString("base64");
+
+  const res = await fetch(`${BASE_URL}/mpesa/stkpushquery/v1/query`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      BusinessShortCode: shortcode,
+      Password: password,
+      Timestamp: ts,
+      CheckoutRequestID: checkoutRequestId,
+    }),
+  });
+
+  const data = (await res.json()) as any;
+  // Safaricom returns errorCode 500.001.1001 while the transaction is still
+  // being processed — that's not a failure, just "not resolved yet".
+  if (data.errorCode) {
+    return { resultCode: null, resultDesc: data.errorMessage || "Still processing" };
+  }
+  return {
+    resultCode: data.ResultCode !== undefined ? Number(data.ResultCode) : null,
+    resultDesc: data.ResultDesc || "",
+  };
+}
