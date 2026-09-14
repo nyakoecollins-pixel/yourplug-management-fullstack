@@ -55,4 +55,19 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     }),
+  getSuppliers: (token) => request("/suppliers", { headers: { Authorization: `Bearer ${token}` } }),
+  createSupplier: (token, payload) =>
+    request("/suppliers", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }),
+  addQuote: (token, requestId, payload) =>
+    request(`/requests/${requestId}/quotes`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }),
+  getRequest: (token, requestId) =>
+    request(`/requests/${requestId}`, { headers: { Authorization: `Bearer ${token}` } }),
 };

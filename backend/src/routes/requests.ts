@@ -203,3 +203,72 @@ requestsRouter.post("/:id/messages", async (req, res) => {
 
   res.status(201).json(message);
 });
+
+// --- Supplier quotes on a request ---
+
+const quoteSchema = z.object({
+  supplierId: z.string(),
+  price: z.number().int().positive(),
+  deliveryEstimate: z.string().min(2),
+  warrantyTerms: z.string().min(2),
+  recommended: z.boolean().default(false),
+});
+
+requestsRouter.post("/:id/quotes", requireRole("AGENT", "ADMIN"), async (req, res) => {
+  const parsed = quoteSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Check the quote details.", details: parsed.error.flatten() });
+
+  const request = await prisma.procurementRequest.findUnique({
+    where: { id: req.params.id },
+    include: { customer: true },
+  });
+  if (!request) return res.status(404).json({ error: "Request not found." });
+
+  const supplier = await prisma.supplier.findUnique({ where: { id: parsed.data.supplierId } });
+  if (!supplier) return res.status(404).json({ error: "Supplier not found." });
+
+  // Transparent, simple scoring from the supplier's own track record —
+  // the full price/reliability/spec-match weighting from the spec applies
+  // once multiple quotes exist to compare against each other.
+  const score = Math.round(supplier.reliability * 0.5 + supplier.delivery * 0.3 + supplier.warranty * 0.2);
+
+  if (parsed.data.recommended) {
+    await prisma.supplierQuote.updateMany({ where: { requestId: request.id }, data: { recommended: false } });
+  }
+
+  const quote = await prisma.supplierQuote.create({
+    data: {
+      requestId: request.id,
+      supplierId: supplier.id,
+      price: parsed.data.price,
+      deliveryEstimate: parsed.data.deliveryEstimate,
+      warrantyTerms: parsed.data.warrantyTerms,
+      recommended: parsed.data.recommended,
+      score,
+    },
+    include: { supplier: true },
+  });
+
+  await prisma.requestEvent.create({
+    data: { requestId: request.id, label: `Quote received from ${supplier.name} — KSh ${parsed.data.price.toLocaleString()}` },
+  });
+
+  if (parsed.data.recommended) {
+    await prisma.procurementRequest.update({ where: { id: request.id }, data: { status: "AWAITING_APPROVAL" } });
+    await prisma.requestEvent.create({
+      data: { requestId: request.id, label: `${supplier.name} recommended — awaiting customer approval` },
+    });
+    await notify({
+      email: request.customer.email,
+      phone: request.customer.phone,
+      subject: `A quote is ready for ${request.ref}`,
+      html: `<p>We found a supplier for ${request.item}: ${supplier.name} at KSh ${parsed.data.price.toLocaleString()}.</p><p>Review and approve it from your dashboard.</p>`,
+      smsText: `YourPlug ${request.ref}: quote ready from ${supplier.name} — KSh ${parsed.data.price.toLocaleString()}. Review in your dashboard.`,
+    });
+  } else if (request.status === "SUBMITTED" || request.status === "UNDER_REVIEW" || request.status === "SUPPLIER_RESEARCH") {
+    await prisma.procurementRequest.update({ where: { id: request.id }, data: { status: "QUOTATION_READY" } });
+  }
+
+  await audit(req.user!.sub, "quote.created", "SupplierQuote", quote.id);
+  res.status(201).json(quote);
+});

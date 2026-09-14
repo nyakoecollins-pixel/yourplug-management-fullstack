@@ -1452,16 +1452,26 @@ function AdminWorkspace({ req, setTab, session }) {
   const [invoiceState, setInvoiceState] = useState("idle"); // idle | creating | done | error
   const [invoiceError, setInvoiceError] = useState("");
   const [manualSubtotal, setManualSubtotal] = useState("");
+  const [localQuotes, setLocalQuotes] = useState(req?.quotes || []);
+  const [suppliers, setSuppliers] = useState([]);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [quoteForm, setQuoteForm] = useState({ supplierId: "", price: "", deliveryEstimate: "", warrantyTerms: "", recommended: false });
+  const [quoteState, setQuoteState] = useState("idle"); // idle | saving | error
+  const [quoteError, setQuoteError] = useState("");
   const liveMode = Boolean(session?.token) && Boolean(req?.dbId);
 
   React.useEffect(() => {
     if (!liveMode) return;
     api.getMessages(session.token, req.dbId).then(setMessages).catch(() => {});
+    api.getSuppliers(session.token).then(setSuppliers).catch(() => {});
   }, [liveMode, req?.dbId]);
+
+  React.useEffect(() => { setLocalQuotes(req?.quotes || []); }, [req?.dbId]);
 
   if (!req) return null;
 
-  const hasQuote = req.quotes && req.quotes.length > 0;
+  const hasQuote = localQuotes.length > 0;
+  const localRecommended = localQuotes.find(q => q.recommended)?.supplier || null;
 
   const generateInvoice = async () => {
     if (!liveMode) return;
@@ -1476,6 +1486,35 @@ function AdminWorkspace({ req, setTab, session }) {
     }
   };
 
+  const submitQuote = async () => {
+    if (!quoteForm.supplierId || !quoteForm.price || !quoteForm.deliveryEstimate || !quoteForm.warrantyTerms) return;
+    setQuoteState("saving"); setQuoteError("");
+    try {
+      const created = await api.addQuote(session.token, req.dbId, {
+        supplierId: quoteForm.supplierId,
+        price: Number(quoteForm.price),
+        deliveryEstimate: quoteForm.deliveryEstimate,
+        warrantyTerms: quoteForm.warrantyTerms,
+        recommended: quoteForm.recommended,
+      });
+      const supplier = suppliers.find(s => s.id === quoteForm.supplierId);
+      setLocalQuotes(qs => {
+        const withoutOldRecommended = quoteForm.recommended ? qs.map(q => ({ ...q, recommended: false })) : qs;
+        return [...withoutOldRecommended, {
+          supplier: supplier?.name || "Supplier", price: created.price, delivery: created.deliveryEstimate,
+          warranty: created.warrantyTerms, reliability: supplier?.reliability || 0, score: created.score, recommended: created.recommended,
+        }];
+      });
+      setShowQuoteForm(false);
+      setQuoteForm({ supplierId: "", price: "", deliveryEstimate: "", warrantyTerms: "", recommended: false });
+    } catch (err) {
+      setQuoteState("error");
+      setQuoteError(err.message || "Couldn't add the quote.");
+    } finally {
+      setQuoteState("idle");
+    }
+  };
+
   const postNote = async (text, visibility) => {
     if (!text.trim() || !liveMode) return;
     const msg = await api.postMessage(session.token, req.dbId, text.trim(), visibility);
@@ -1483,7 +1522,7 @@ function AdminWorkspace({ req, setTab, session }) {
     if (visibility === "internal") setNote(""); else setReply("");
   };
 
-  const actions = ["Find Suppliers", "Request Quote", "Compare Suppliers", "Recommend Supplier", "Negotiate", "Request Customer Approval", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
+  const actions = ["Find Suppliers", "Compare Suppliers", "Negotiate", "Request Customer Approval", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
 
   return (
     <div className="p-8 max-w-5xl space-y-8">
@@ -1496,6 +1535,10 @@ function AdminWorkspace({ req, setTab, session }) {
       <div className="flex flex-wrap gap-2 items-center">
         {liveMode ? (
           <>
+            <button onClick={() => setShowQuoteForm(s => !s)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">
+              {showQuoteForm ? "Cancel" : "+ Add Quote"}
+            </button>
             {!hasQuote && invoiceState !== "done" && (
               <input value={manualSubtotal} onChange={e => setManualSubtotal(e.target.value)} type="number"
                 placeholder="Item subtotal (KSh) — no quote on file"
@@ -1507,32 +1550,62 @@ function AdminWorkspace({ req, setTab, session }) {
             </button>
           </>
         ) : (
-          <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">Generate Invoice</button>
+          <>
+            <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">+ Add Quote</button>
+            <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">Generate Invoice</button>
+          </>
         )}
         {actions.map(a => <button key={a} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">{a}</button>)}
       </div>
       {invoiceState === "error" && <p className="text-xs text-rose-600">{invoiceError}</p>}
       {invoiceState === "done" && <p className="text-xs text-emerald-700">Invoice created and sent to the customer by email/SMS. Request moved to Awaiting Payment.</p>}
-      {!liveMode && <p className="text-xs text-slate-400">Actions are illustrative in demo mode — log in with a real admin account to actually generate an invoice.</p>}
+      {!liveMode && <p className="text-xs text-slate-400">Actions are illustrative in demo mode — log in with a real admin account to actually generate an invoice or add a quote.</p>}
 
-      {req.quotes.length > 0 && (
+      {liveMode && showQuoteForm && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
+          <p className="font-medium text-[#0F1C2E] text-sm">Add a supplier quote</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <select value={quoteForm.supplierId} onChange={e => setQuoteForm(f => ({ ...f, supplierId: e.target.value }))}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+              <option value="">Select supplier…</option>
+              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} — {s.category}</option>)}
+            </select>
+            <input value={quoteForm.price} onChange={e => setQuoteForm(f => ({ ...f, price: e.target.value }))} type="number"
+              placeholder="Price (KSh)" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            <input value={quoteForm.deliveryEstimate} onChange={e => setQuoteForm(f => ({ ...f, deliveryEstimate: e.target.value }))}
+              placeholder="Delivery estimate — e.g. '2-day delivery'" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            <input value={quoteForm.warrantyTerms} onChange={e => setQuoteForm(f => ({ ...f, warrantyTerms: e.target.value }))}
+              placeholder="Warranty — e.g. '1-year warranty'" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input type="checkbox" checked={quoteForm.recommended} onChange={e => setQuoteForm(f => ({ ...f, recommended: e.target.checked }))} />
+            Recommend this to the customer now (moves request to Awaiting Approval and notifies them)
+          </label>
+          {quoteState === "error" && <p className="text-xs text-rose-600">{quoteError}</p>}
+          <PrimaryButton className="!py-2 !px-4 !text-xs" disabled={quoteState === "saving"} onClick={submitQuote}>
+            {quoteState === "saving" ? "Saving…" : "Save quote"}
+          </PrimaryButton>
+        </div>
+      )}
+
+      {hasQuote && (
         <div>
           <p className="font-medium text-[#0F1C2E] mb-3">Supplier quotations</p>
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Supplier</th><th className="text-left px-4 py-3">Price</th><th className="text-left px-4 py-3">Delivery</th><th className="text-left px-4 py-3">Warranty</th><th className="text-left px-4 py-3">Reliability</th><th className="text-left px-4 py-3">Best value score</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {req.quotes.map(q => (
-                  <tr key={q.supplier} className={q.supplier === req.recommended ? "bg-emerald-50/50" : ""}>
+                {localQuotes.map((q, i) => (
+                  <tr key={i} className={q.supplier === localRecommended ? "bg-emerald-50/50" : ""}>
                     <td className="px-4 py-3 font-medium text-[#0F1C2E]">{q.supplier}</td><td className="px-4 py-3"><Money value={q.price} /></td>
                     <td className="px-4 py-3">{q.delivery}</td><td className="px-4 py-3">{q.warranty}</td><td className="px-4 py-3">{q.reliability}/100</td>
-                    <td className="px-4 py-3 font-medium">{q.score} {q.supplier === req.recommended && <Award size={13} className="inline text-emerald-600 ml-1" />}</td>
+                    <td className="px-4 py-3 font-medium">{q.score} {q.supplier === localRecommended && <Award size={13} className="inline text-emerald-600 ml-1" />}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Scoring weights: price 35%, reliability 25%, specification match 20%, delivery 10%, warranty 10% — configurable in Settings.</p>
+          <p className="text-xs text-slate-400 mt-2">Score shown reflects the supplier's own reliability, delivery and warranty track record. Full price/spec-match weighting applies once multiple quotes are compared.</p>
         </div>
       )}
 
@@ -1719,7 +1792,7 @@ function AdminDashboard({ setNav, setSession, session }) {
   const [liveLogs, setLiveLogs] = useState(null);
   const [liveError, setLiveError] = useState("");
 
-  React.useEffect(() => {
+  const refreshOrders = React.useCallback(() => {
     if (!session.token) return;
     api.allOrders(session.token).then(data => setLiveOrders(data.map(mapLiveOrder))).catch(err => setLiveError(err.message));
     api.allInvoices(session.token).then(data => setLiveInvoices(data.map(inv => ({
@@ -1731,6 +1804,8 @@ function AdminDashboard({ setNav, setSession, session }) {
       l.actor?.name || "system", l.action, l.objectId,
     ]))).catch(() => {});
   }, [session.token]);
+
+  React.useEffect(() => { refreshOrders(); }, [refreshOrders]);
 
   const liveMode = Boolean(session.token);
   const orders = liveMode ? (liveOrders || []) : REQUESTS;
@@ -1755,7 +1830,7 @@ function AdminDashboard({ setNav, setSession, session }) {
         <div className="flex-1 overflow-y-auto bg-slate-50">
           {tab === "overview" && <AdminOverview orders={orders} setTab={setTab} setSelected={setSelected} />}
           {tab === "orders" && <AdminOrders orders={orders} setTab={setTab} setSelected={setSelected} />}
-          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} session={session} /></div>}
+          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} session={session} onChanged={refreshOrders} /></div>}
           {tab === "suppliers" && <AdminSuppliers />}
           {tab === "agents" && <AdminAgents />}
           {tab === "invoices" && <AdminInvoices invoices={invoices} liveMode={liveMode} />}
