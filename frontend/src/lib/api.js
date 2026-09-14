@@ -22,5 +22,31 @@ export const api = {
     request("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
   logout: () => request("/auth/logout", { method: "POST" }),
   myRequests: (token) => request("/requests/mine", { headers: { Authorization: `Bearer ${token}` } }),
+  myInvoices: (token) => request("/invoices/mine", { headers: { Authorization: `Bearer ${token}` } }),
   adminMetrics: (token) => request("/admin/metrics", { headers: { Authorization: `Bearer ${token}` } }),
+  allOrders: (token) => request("/requests", { headers: { Authorization: `Bearer ${token}` } }),
+  allInvoices: (token) => request("/invoices", { headers: { Authorization: `Bearer ${token}` } }),
+  auditLogs: (token) => request("/admin/audit-logs", { headers: { Authorization: `Bearer ${token}` } }),
+  initiateMpesa: (token, invoiceId, phone) =>
+    request("/payments/mpesa/initiate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ invoiceId, phone }),
+    }),
+  mpesaStatus: (token, checkoutRequestId) =>
+    request(`/payments/mpesa/status/${checkoutRequestId}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getMessages: (token, requestId) =>
+    request(`/requests/${requestId}/messages`, { headers: { Authorization: `Bearer ${token}` } }),
+  postMessage: (token, requestId, body, visibility = "customer") =>
+    request(`/requests/${requestId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ body, visibility }),
+    }),
+  createInvoice: (token, requestId, subtotal) =>
+    request("/invoices", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(subtotal ? { requestId, subtotal } : { requestId }),
+    }),
 };

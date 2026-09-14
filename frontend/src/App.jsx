@@ -641,7 +641,8 @@ function AuthPage({ mode, setNav, onAuth }) {
         return;
       }
       const data = await api.login(form.email, form.password);
-      onAuth("customer", { name: data.user.name, token: data.accessToken, role: data.user.role.toLowerCase() });
+      const role = data.user.role === "ADMIN" ? "admin" : "customer";
+      onAuth(role, { name: data.user.name, token: data.accessToken, role, userId: data.user.id });
     } catch (err) {
       setError(err.message || "Couldn't reach the API. Is the backend running?");
     } finally {
@@ -974,17 +975,190 @@ function NewRequestWizard() {
   );
 }
 
+function PaymentsPanel({ session, invoices }) {
+  const [phone, setPhone] = useState("");
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [status, setStatus] = useState("idle"); // idle | sending | waiting | confirmed | failed
+  const [error, setError] = useState("");
+  const [checkoutId, setCheckoutId] = useState(null);
+
+  const unpaid = (invoices || []).filter(i => i.status !== "PAID");
+  const target = selectedInvoice || unpaid[0];
+
+  React.useEffect(() => {
+    if (status !== "waiting" || !checkoutId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.mpesaStatus(session.token, checkoutId);
+        if (res.status === "confirmed") { setStatus("confirmed"); clearInterval(interval); }
+        else if (res.status === "failed") { setStatus("failed"); setError(res.resultDesc || "Payment failed or was cancelled."); clearInterval(interval); }
+      } catch { /* keep polling */ }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [status, checkoutId]);
+
+  const pay = async () => {
+    if (!target) return;
+    setStatus("sending"); setError("");
+    try {
+      const res = await api.initiateMpesa(session.token, target.id, phone);
+      setCheckoutId(res.checkoutRequestId);
+      setStatus("waiting");
+    } catch (err) {
+      setStatus("failed");
+      setError(err.message || "Couldn't reach M-Pesa.");
+    }
+  };
+
+  if (!session.token) {
+    return (
+      <div className="p-8 max-w-md">
+        <div className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="font-medium text-[#0F1C2E] mb-3">Pay via M-Pesa</p>
+          <p className="text-sm text-slate-500 mb-4">Demo mode — log in with a real account to trigger an actual M-Pesa STK push.</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-slate-500">Invoice</span><span>INV-001829</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Account reference</span><span className="font-medium text-[#0F1C2E]">YPM-001829</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Amount</span><Money value={312000} /></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (unpaid.length === 0) {
+    return <div className="p-8 max-w-md"><p className="text-sm text-slate-500">No outstanding invoices — nothing to pay right now.</p></div>;
+  }
+
+  return (
+    <div className="p-8 max-w-md space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <p className="font-medium text-[#0F1C2E] mb-1">Pay via M-Pesa</p>
+        <p className="text-sm text-slate-500 mb-4">A real STK push is sent to the phone number you enter below.</p>
+
+        {unpaid.length > 1 && (
+          <select value={target?.id} onChange={e => setSelectedInvoice(unpaid.find(i => i.id === e.target.value))}
+            className="w-full mb-4 rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+            {unpaid.map(i => <option key={i.id} value={i.id}>{i.number} — {i.item}</option>)}
+          </select>
+        )}
+
+        <div className="space-y-2 text-sm mb-4">
+          <div className="flex justify-between"><span className="text-slate-500">Invoice</span><span>{target.number}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Item</span><span>{target.item}</span></div>
+          <div className="flex justify-between font-medium"><span className="text-slate-500">Amount</span><Money value={target.total} currency={target.currency} /></div>
+        </div>
+
+        {status === "idle" || status === "sending" ? (
+          <>
+            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="M-Pesa phone number, e.g. 0712345678"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm mb-3" />
+            <PrimaryButton className="w-full" disabled={status === "sending" || !phone} onClick={pay}>
+              {status === "sending" ? "Sending request…" : "Pay with M-Pesa"}
+            </PrimaryButton>
+          </>
+        ) : status === "waiting" ? (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+            Check your phone and enter your M-Pesa PIN to complete the payment. This updates automatically once confirmed.
+          </div>
+        ) : status === "confirmed" ? (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 flex items-center gap-2">
+            <CheckCircle2 size={16} /> Payment confirmed. Your order is proceeding.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{error}</div>
+            <SecondaryButton onClick={() => { setStatus("idle"); setError(""); }}>Try again</SecondaryButton>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessagesPanel({ session, requests }) {
+  const [selectedId, setSelectedId] = useState(requests?.[0]?.dbId || null);
+  const [thread, setThread] = useState([]);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const selected = (requests || []).find(r => r.dbId === selectedId) || requests?.[0];
+
+  React.useEffect(() => {
+    if (!session.token || !selected?.dbId) return;
+    api.getMessages(session.token, selected.dbId).then(setThread).catch(err => setError(err.message));
+  }, [session.token, selected?.dbId]);
+
+  const send = async () => {
+    if (!draft.trim() || !selected?.dbId) return;
+    setSending(true); setError("");
+    try {
+      const msg = await api.postMessage(session.token, selected.dbId, draft.trim(), "customer");
+      setThread(t => [...t, msg]);
+      setDraft("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!session.token) {
+    return (
+      <div className="p-8 max-w-xl">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          {[["Customer", "Can you get the black version?"], ["Agent Collins", "Yes. I am checking availability."], ["Agent Collins", "Black is available from Supplier B for KSh 2,000 more."], ["Customer", "Approved."]].map(([who, msg], i) => (
+            <div key={i} className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${who === "Customer" ? "ml-auto bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-700"}`}>{msg}</div>
+          ))}
+        </div>
+        <p className="text-xs text-slate-400 mt-3">Demo mode — log in with a real account to message your assigned agent.</p>
+      </div>
+    );
+  }
+
+  if (!requests || requests.length === 0) {
+    return <div className="p-8 max-w-xl"><p className="text-sm text-slate-500">No requests yet — messages appear here once you have an active request.</p></div>;
+  }
+
+  return (
+    <div className="p-8 max-w-xl">
+      {requests.length > 1 && (
+        <select value={selectedId || ""} onChange={e => setSelectedId(e.target.value)} className="w-full mb-4 rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+          {requests.map(r => <option key={r.dbId} value={r.dbId}>{r.id} — {r.item}</option>)}
+        </select>
+      )}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4 min-h-[120px]">
+        {thread.length === 0 && <p className="text-sm text-slate-400">No messages yet on this request.</p>}
+        {thread.map(m => (
+          <div key={m.id} className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${m.senderId === session.userId ? "ml-auto bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-700"}`}>
+            <p>{m.body}</p>
+            <p className={`text-[10px] mt-1 ${m.senderId === session.userId ? "text-slate-300" : "text-slate-400"}`}>{m.sender?.name || "You"}</p>
+          </div>
+        ))}
+      </div>
+      {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+      <div className="mt-4 flex gap-2">
+        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+          placeholder="Write a message" className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <PrimaryButton className="!px-4" disabled={sending} onClick={send}>Send</PrimaryButton>
+      </div>
+    </div>
+  );
+}
+
 function CustomerDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
   const [liveRequests, setLiveRequests] = useState(null);
+  const [liveInvoices, setLiveInvoices] = useState(null);
   const [liveError, setLiveError] = useState("");
 
   React.useEffect(() => {
     if (!session.token) return;
     api.myRequests(session.token)
       .then(data => setLiveRequests(data.map(r => ({
-        id: r.ref, item: r.item, customer: session.name, agent: r.agent?.name || "Unassigned",
+        dbId: r.id, id: r.ref, item: r.item, customer: session.name, agent: r.agent?.name || "Unassigned",
         status: r.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
         urgency: r.urgency.charAt(0) + r.urgency.slice(1).toLowerCase(),
         value: r.quotes?.[0]?.price || 0, currency: r.currency, created: r.createdAt.slice(0, 10),
@@ -992,6 +1166,12 @@ function CustomerDashboard({ setNav, setSession, session }) {
         quotes: [], recommended: null,
       }))))
       .catch(err => setLiveError(err.message));
+    api.myInvoices(session.token)
+      .then(data => setLiveInvoices(data.map(inv => ({
+        id: inv.id, number: inv.number, item: inv.request.item, total: inv.total,
+        currency: inv.currency, status: inv.status,
+      }))))
+      .catch(() => {});
   }, [session.token]);
 
   const demoRequests = REQUESTS.filter(r => r.customer === session.name);
@@ -1047,28 +1227,25 @@ function CustomerDashboard({ setNav, setSession, session }) {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Invoice</th><th className="text-left px-4 py-3">Request</th><th className="text-left px-4 py-3">Amount</th><th className="text-left px-4 py-3">Status</th></tr></thead>
                   <tbody className="divide-y divide-slate-100">
-                    {myRequests.filter(r => r.value).map((r, i) => (
-                      <tr key={r.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">INV-{1820 + i}</td><td className="px-4 py-3">{r.item}</td><td className="px-4 py-3"><Money value={r.value} /></td>
-                        <td className="px-4 py-3"><StatusBadge status={["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed"} /></td></tr>
-                    ))}
+                    {session.token
+                      ? (liveInvoices || []).map(inv => (
+                          <tr key={inv.number}><td className="px-4 py-3 font-medium text-[#0F1C2E]">{inv.number}</td><td className="px-4 py-3">{inv.item}</td>
+                            <td className="px-4 py-3"><Money value={inv.total} currency={inv.currency} /></td>
+                            <td className="px-4 py-3"><StatusBadge status={inv.status === "PAID" ? "Completed" : "Awaiting Payment"} /></td></tr>
+                        ))
+                      : myRequests.filter(r => r.value).map((r, i) => (
+                          <tr key={r.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">INV-{1820 + i}</td><td className="px-4 py-3">{r.item}</td><td className="px-4 py-3"><Money value={r.value} /></td>
+                            <td className="px-4 py-3"><StatusBadge status={["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed"} /></td></tr>
+                        ))}
                   </tbody>
                 </table>
+                {session.token && (liveInvoices || []).length === 0 && (
+                  <p className="text-sm text-slate-500 p-5">No invoices yet — these are created once a request reaches quotation approval.</p>
+                )}
               </div>
             </div>
           )}
-          {tab === "payments" && (
-            <div className="p-8 max-w-md">
-              <div className="rounded-xl border border-slate-200 bg-white p-6">
-                <p className="font-medium text-[#0F1C2E] mb-3">Pay via M-Pesa</p>
-                <p className="text-sm text-slate-500 mb-4">Paybill 400200 · Account reference is unique per invoice.</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-500">Invoice</span><span>INV-001829</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Account reference</span><span className="font-medium text-[#0F1C2E]">YPM-001829</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Amount</span><Money value={312000} /></div>
-                </div>
-              </div>
-            </div>
-          )}
+          {tab === "payments" && <PaymentsPanel session={session} invoices={liveInvoices} />}
           {tab === "tracking" && (
             <div className="p-8 space-y-4">
               {myRequests.filter(r => ["In Transit", "Dispatched", "Delivered"].includes(r.status)).map(r => (
@@ -1086,16 +1263,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
               ))}
             </div>
           )}
-          {tab === "messages" && (
-            <div className="p-8 max-w-xl">
-              <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
-                {[["Customer", "Can you get the black version?"], ["Agent Collins", "Yes. I am checking availability."], ["Agent Collins", "Black is available from Supplier B for KSh 2,000 more."], ["Customer", "Approved."]].map(([who, msg], i) => (
-                  <div key={i} className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${who === "Customer" ? "ml-auto bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-700"}`}>{msg}</div>
-                ))}
-              </div>
-              <div className="mt-4 flex gap-2"><input placeholder="Write a message" className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /><PrimaryButton className="!px-4">Send</PrimaryButton></div>
-            </div>
-          )}
+          {tab === "messages" && <MessagesPanel session={session} requests={myRequests} />}
           {tab === "documents" && (
             <div className="p-8">
               <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
@@ -1150,14 +1318,14 @@ function AdminSidebar({ tab, setTab, setSession, setNav }) {
   );
 }
 
-function AdminOverview({ setTab, setSelected }) {
-  const total = REQUESTS.length;
-  const urgent = REQUESTS.filter(r => ["Urgent", "Emergency"].includes(r.urgency) && !["Completed", "Cancelled"].includes(r.status)).length;
-  const awaitingApproval = REQUESTS.filter(r => r.status === "Awaiting Approval").length;
-  const awaitingPayment = REQUESTS.filter(r => r.status === "Awaiting Payment").length;
-  const inTransit = REQUESTS.filter(r => r.status === "In Transit").length;
-  const completed = REQUESTS.filter(r => r.status === "Completed").length;
-  const revenue = REQUESTS.reduce((s, r) => s + (r.value || 0) * 0.06, 0);
+function AdminOverview({ orders, setTab, setSelected }) {
+  const total = orders.length;
+  const urgent = orders.filter(r => ["Urgent", "Emergency"].includes(r.urgency) && !["Completed", "Cancelled"].includes(r.status)).length;
+  const awaitingApproval = orders.filter(r => r.status === "Awaiting Approval").length;
+  const awaitingPayment = orders.filter(r => r.status === "Awaiting Payment").length;
+  const inTransit = orders.filter(r => r.status === "In Transit").length;
+  const completed = orders.filter(r => r.status === "Completed").length;
+  const revenue = orders.reduce((s, r) => s + (r.value || 0) * 0.06, 0);
 
   return (
     <div className="p-8 space-y-8">
@@ -1180,7 +1348,8 @@ function AdminOverview({ setTab, setSelected }) {
           <button onClick={() => setTab("orders")} className="text-sm text-[#0F8B75] font-medium">View all orders</button>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
-          {[...REQUESTS].sort((a, b) => (["Emergency", "Urgent", "High", "Normal"].indexOf(a.urgency)) - (["Emergency", "Urgent", "High", "Normal"].indexOf(b.urgency))).map(r => (
+          {orders.length === 0 && <p className="text-sm text-slate-500 p-5">No orders yet.</p>}
+          {[...orders].sort((a, b) => (["Emergency", "Urgent", "High", "Normal"].indexOf(a.urgency)) - (["Emergency", "Urgent", "High", "Normal"].indexOf(b.urgency))).map(r => (
             <button key={r.id} onClick={() => { setSelected(r.id); setTab("workspace"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
               <div className="flex items-center gap-3">
                 <UrgencyTag urgency={r.urgency} />
@@ -1195,10 +1364,10 @@ function AdminOverview({ setTab, setSelected }) {
   );
 }
 
-function AdminOrders({ setTab, setSelected }) {
+function AdminOrders({ orders, setTab, setSelected }) {
   const [filter, setFilter] = useState("All");
-  const statuses = ["All", ...Array.from(new Set(REQUESTS.map(r => r.status)))];
-  const rows = filter === "All" ? REQUESTS : REQUESTS.filter(r => r.status === filter);
+  const statuses = ["All", ...Array.from(new Set(orders.map(r => r.status)))];
+  const rows = filter === "All" ? orders : orders.filter(r => r.status === filter);
   return (
     <div className="p-8">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -1221,6 +1390,7 @@ function AdminOrders({ setTab, setSelected }) {
                 <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
               </tr>
             ))}
+            {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No orders match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1228,9 +1398,46 @@ function AdminOrders({ setTab, setSelected }) {
   );
 }
 
-function AdminWorkspace({ req, setTab }) {
+function AdminWorkspace({ req, setTab, session }) {
+  const [messages, setMessages] = useState([]);
+  const [note, setNote] = useState("");
+  const [reply, setReply] = useState("");
+  const [invoiceState, setInvoiceState] = useState("idle"); // idle | creating | done | error
+  const [invoiceError, setInvoiceError] = useState("");
+  const [manualSubtotal, setManualSubtotal] = useState("");
+  const liveMode = Boolean(session?.token) && Boolean(req?.dbId);
+
+  React.useEffect(() => {
+    if (!liveMode) return;
+    api.getMessages(session.token, req.dbId).then(setMessages).catch(() => {});
+  }, [liveMode, req?.dbId]);
+
   if (!req) return null;
-  const actions = ["Find Suppliers", "Request Quote", "Compare Suppliers", "Recommend Supplier", "Negotiate", "Request Customer Approval", "Generate Invoice", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
+
+  const hasQuote = req.quotes && req.quotes.length > 0;
+
+  const generateInvoice = async () => {
+    if (!liveMode) return;
+    if (!hasQuote && !manualSubtotal) return; // wait for the amount field
+    setInvoiceState("creating"); setInvoiceError("");
+    try {
+      await api.createInvoice(session.token, req.dbId, hasQuote ? undefined : Number(manualSubtotal));
+      setInvoiceState("done");
+    } catch (err) {
+      setInvoiceState("error");
+      setInvoiceError(err.message || "Couldn't generate the invoice.");
+    }
+  };
+
+  const postNote = async (text, visibility) => {
+    if (!text.trim() || !liveMode) return;
+    const msg = await api.postMessage(session.token, req.dbId, text.trim(), visibility);
+    setMessages(m => [...m, msg]);
+    if (visibility === "internal") setNote(""); else setReply("");
+  };
+
+  const actions = ["Find Suppliers", "Request Quote", "Compare Suppliers", "Recommend Supplier", "Negotiate", "Request Customer Approval", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
+
   return (
     <div className="p-8 max-w-5xl space-y-8">
       <button onClick={() => setTab("orders")} className="text-sm text-slate-500">← Back to Orders</button>
@@ -1239,9 +1446,27 @@ function AdminWorkspace({ req, setTab }) {
         <div className="flex items-center gap-2"><UrgencyTag urgency={req.urgency} /><StatusBadge status={req.status} /></div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
+        {liveMode ? (
+          <>
+            {!hasQuote && invoiceState !== "done" && (
+              <input value={manualSubtotal} onChange={e => setManualSubtotal(e.target.value)} type="number"
+                placeholder="Item subtotal (KSh) — no quote on file"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-xs w-56" />
+            )}
+            <button onClick={generateInvoice} disabled={invoiceState === "creating" || invoiceState === "done" || (!hasQuote && !manualSubtotal)}
+              className="rounded-lg border border-[#0F1C2E] bg-[#0F1C2E] px-3 py-2 text-xs font-medium text-white hover:bg-[#16283f] disabled:opacity-60">
+              {invoiceState === "creating" ? "Generating…" : invoiceState === "done" ? "Invoice generated ✓" : "Generate Invoice"}
+            </button>
+          </>
+        ) : (
+          <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">Generate Invoice</button>
+        )}
         {actions.map(a => <button key={a} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50">{a}</button>)}
       </div>
+      {invoiceState === "error" && <p className="text-xs text-rose-600">{invoiceError}</p>}
+      {invoiceState === "done" && <p className="text-xs text-emerald-700">Invoice created and sent to the customer by email/SMS. Request moved to Awaiting Payment.</p>}
+      {!liveMode && <p className="text-xs text-slate-400">Actions are illustrative in demo mode — log in with a real admin account to actually generate an invoice.</p>}
 
       {req.quotes.length > 0 && (
         <div>
@@ -1267,16 +1492,50 @@ function AdminWorkspace({ req, setTab }) {
       <div>
         <p className="font-medium text-[#0F1C2E] mb-3">Timeline (immutable audit trail)</p>
         <div className="space-y-3">
+          {req.timeline.length === 0 && <p className="text-sm text-slate-400">No events recorded yet.</p>}
           {req.timeline.map(([time, event], i) => (
-            <div key={i} className="flex gap-4 text-sm"><span className="text-slate-400 w-14 shrink-0">{time}</span><span className="text-slate-700">{event}</span></div>
+            <div key={i} className="flex gap-4 text-sm">{time && <span className="text-slate-400 w-14 shrink-0">{time}</span>}<span className="text-slate-700">{event}</span></div>
           ))}
         </div>
       </div>
 
-      <div>
-        <p className="font-medium text-[#0F1C2E] mb-3">Internal notes <span className="text-xs font-normal text-slate-400">(never visible to customer)</span></p>
-        <textarea rows={3} placeholder="Add an internal note…" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
-      </div>
+      {liveMode ? (
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div>
+            <p className="font-medium text-[#0F1C2E] mb-3">Message customer</p>
+            <div className="rounded-lg border border-slate-200 p-3 space-y-2 max-h-48 overflow-y-auto mb-2 bg-white">
+              {messages.filter(m => m.visibility === "customer").length === 0 && <p className="text-xs text-slate-400">No messages yet.</p>}
+              {messages.filter(m => m.visibility === "customer").map(m => (
+                <div key={m.id} className="text-xs"><span className="font-medium text-[#0F1C2E]">{m.sender?.name || "You"}:</span> <span className="text-slate-600">{m.body}</span></div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => e.key === "Enter" && postNote(reply, "customer")}
+                placeholder="Reply to customer" className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <SecondaryButton className="!px-3 !py-2" onClick={() => postNote(reply, "customer")}>Send</SecondaryButton>
+            </div>
+          </div>
+          <div>
+            <p className="font-medium text-[#0F1C2E] mb-3">Internal notes <span className="text-xs font-normal text-slate-400">(never visible to customer)</span></p>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2 max-h-48 overflow-y-auto mb-2">
+              {messages.filter(m => m.visibility === "internal").length === 0 && <p className="text-xs text-slate-400">No internal notes yet.</p>}
+              {messages.filter(m => m.visibility === "internal").map(m => (
+                <div key={m.id} className="text-xs"><span className="font-medium text-[#0F1C2E]">{m.sender?.name || "You"}:</span> <span className="text-slate-700">{m.body}</span></div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={note} onChange={e => setNote(e.target.value)} onKeyDown={e => e.key === "Enter" && postNote(note, "internal")}
+                placeholder="Add an internal note…" className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <SecondaryButton className="!px-3 !py-2" onClick={() => postNote(note, "internal")}>Add</SecondaryButton>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="font-medium text-[#0F1C2E] mb-3">Internal notes <span className="text-xs font-normal text-slate-400">(never visible to customer)</span></p>
+          <textarea rows={3} placeholder="Add an internal note… (log in for real to save this)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        </div>
+      )}
     </div>
   );
 }
@@ -1326,18 +1585,19 @@ function AdminAgents() {
   );
 }
 
-function AdminInvoices() {
+function AdminInvoices({ invoices, liveMode }) {
   return (
     <div className="p-8">
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Invoice</th><th className="text-left px-4 py-3">Customer</th><th className="text-left px-4 py-3">Reference</th><th className="text-left px-4 py-3">Amount</th><th className="text-left px-4 py-3">Status</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {REQUESTS.filter(r => r.value).map((r, i) => (
-              <tr key={r.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">INV-{1820 + i}</td><td className="px-4 py-3">{r.customer}</td>
-                <td className="px-4 py-3 text-slate-500">YPM-{1820 + i}</td><td className="px-4 py-3"><Money value={r.value} /></td>
-                <td className="px-4 py-3"><StatusBadge status={["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed"} /></td></tr>
+            {invoices.map(inv => (
+              <tr key={inv.number}><td className="px-4 py-3 font-medium text-[#0F1C2E]">{inv.number}</td><td className="px-4 py-3">{inv.customer}</td>
+                <td className="px-4 py-3 text-slate-500">{inv.reference}</td><td className="px-4 py-3"><Money value={inv.amount} currency={inv.currency} /></td>
+                <td className="px-4 py-3"><StatusBadge status={inv.status === "PAID" || inv.status === "Completed" ? "Completed" : "Awaiting Payment"} /></td></tr>
             ))}
+            {invoices.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">{liveMode ? "No invoices yet." : "No invoices."}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1361,14 +1621,7 @@ function AdminReports() {
   );
 }
 
-function AdminAudit() {
-  const logs = [
-    ["09:12", "system", "request.created", "YPM-202609-00142"],
-    ["09:25", "admin.collins", "agent.assigned", "YPM-202609-00127"],
-    ["11:10", "system", "payment.confirmed", "INV-001829"],
-    ["11:15", "admin.collins", "purchase_order.created", "PO-3391"],
-    ["07:42", "admin.collins", "invoice.sent", "INV-001842"],
-  ];
+function AdminAudit({ logs, liveMode }) {
   return (
     <div className="p-8">
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -1376,33 +1629,91 @@ function AdminAudit() {
           <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Time</th><th className="text-left px-4 py-3">User</th><th className="text-left px-4 py-3">Action</th><th className="text-left px-4 py-3">Object</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {logs.map((l, i) => <tr key={i}>{l.map((c, j) => <td key={j} className="px-4 py-3 text-slate-700">{c}</td>)}</tr>)}
+            {logs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No audit events yet.</td></tr>}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-400 mt-3">Audit events are immutable and retained for compliance review.</p>
+      <p className="text-xs text-slate-400 mt-3">{liveMode ? "Live from the database — immutable and retained for compliance review." : "Audit events are immutable and retained for compliance review."}</p>
     </div>
   );
 }
 
-function AdminDashboard({ setNav, setSession }) {
+const DEMO_AUDIT_LOGS = [
+  ["09:12", "system", "request.created", "YPM-202609-00142"],
+  ["09:25", "admin.collins", "agent.assigned", "YPM-202609-00127"],
+  ["11:10", "system", "payment.confirmed", "INV-001829"],
+  ["11:15", "admin.collins", "purchase_order.created", "PO-3391"],
+  ["07:42", "admin.collins", "invoice.sent", "INV-001842"],
+];
+
+function mapLiveOrder(r) {
+  const statusLabel = r.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const urgencyLabel = r.urgency.charAt(0) + r.urgency.slice(1).toLowerCase();
+  const quotes = (r.quotes || []).map(q => ({
+    supplier: q.supplier?.name || "Unknown supplier", price: q.price,
+    delivery: q.deliveryEstimate, warranty: q.warrantyTerms,
+    reliability: q.supplier?.reliability || 0, score: q.score,
+  }));
+  const recommended = (r.quotes || []).find(q => q.recommended)?.supplier?.name || null;
+  return {
+    dbId: r.id, id: r.ref, item: r.item, customer: r.customer?.name || "Unknown", agent: r.agent?.name || "Unassigned",
+    status: statusLabel, urgency: urgencyLabel, value: r.quotes?.[0]?.price || 0, currency: r.currency,
+    created: r.createdAt.slice(0, 10),
+    timeline: (r.events || []).map(e => ["", e.label]),
+    quotes, recommended,
+  };
+}
+
+function AdminDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
-  const selectedReq = REQUESTS.find(r => r.id === selected);
+  const [liveOrders, setLiveOrders] = useState(null);
+  const [liveInvoices, setLiveInvoices] = useState(null);
+  const [liveLogs, setLiveLogs] = useState(null);
+  const [liveError, setLiveError] = useState("");
+
+  React.useEffect(() => {
+    if (!session.token) return;
+    api.allOrders(session.token).then(data => setLiveOrders(data.map(mapLiveOrder))).catch(err => setLiveError(err.message));
+    api.allInvoices(session.token).then(data => setLiveInvoices(data.map(inv => ({
+      number: inv.number, customer: inv.request.customer?.name || "Unknown", reference: inv.paymentReference,
+      amount: inv.total, currency: inv.currency, status: inv.status,
+    })))).catch(() => {});
+    api.auditLogs(session.token).then(data => setLiveLogs(data.map(l => [
+      new Date(l.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      l.actor?.name || "system", l.action, l.objectId,
+    ]))).catch(() => {});
+  }, [session.token]);
+
+  const liveMode = Boolean(session.token);
+  const orders = liveMode ? (liveOrders || []) : REQUESTS;
+  const invoices = liveMode
+    ? (liveInvoices || [])
+    : REQUESTS.filter(r => r.value).map((r, i) => ({ number: `INV-${1820 + i}`, customer: r.customer, reference: `YPM-${1820 + i}`, amount: r.value, currency: r.currency, status: ["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed" }));
+  const logs = liveMode ? (liveLogs || []) : DEMO_AUDIT_LOGS;
+  const selectedReq = orders.find(r => r.id === selected);
   const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs" };
+
   return (
     <div className="flex h-screen">
       <AdminSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashTopbar title={titles[tab]} name="Admin" />
+        <DashTopbar title={titles[tab]} name={session.name} />
+        {liveMode && (
+          <div className={`px-8 py-2 text-xs ${liveError ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {liveError ? `Couldn't load live data: ${liveError}` : "Connected to the live API — showing real data from the database."}
+          </div>
+        )}
+        {!liveMode && <div className="px-8 py-2 text-xs bg-amber-50 text-amber-700">Demo mode — showing sample data, not connected to a backend.</div>}
         <div className="flex-1 overflow-y-auto bg-slate-50">
-          {tab === "overview" && <AdminOverview setTab={setTab} setSelected={setSelected} />}
-          {tab === "orders" && <AdminOrders setTab={setTab} setSelected={setSelected} />}
-          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} /></div>}
+          {tab === "overview" && <AdminOverview orders={orders} setTab={setTab} setSelected={setSelected} />}
+          {tab === "orders" && <AdminOrders orders={orders} setTab={setTab} setSelected={setSelected} />}
+          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} session={session} /></div>}
           {tab === "suppliers" && <AdminSuppliers />}
           {tab === "agents" && <AdminAgents />}
-          {tab === "invoices" && <AdminInvoices />}
+          {tab === "invoices" && <AdminInvoices invoices={invoices} liveMode={liveMode} />}
           {tab === "reports" && <AdminReports />}
-          {tab === "audit" && <AdminAudit />}
+          {tab === "audit" && <AdminAudit logs={logs} liveMode={liveMode} />}
         </div>
       </div>
     </div>
@@ -1418,12 +1729,12 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   const handleAuth = (role, data = {}) => {
-    if (role === "admin") { setSession({ role: "admin", name: data.name || "Admin", token: data.token || null }); setNav("admin"); }
-    else { setSession({ role: "customer", name: data.name || "James Mwangi", token: data.token || null }); setNav("dashboard"); }
+    if (role === "admin") { setSession({ role: "admin", name: data.name || "Admin", token: data.token || null, userId: data.userId || null }); setNav("admin"); }
+    else { setSession({ role: "customer", name: data.name || "James Mwangi", token: data.token || null, userId: data.userId || null }); setNav("dashboard"); }
   };
 
   if (session && nav === "dashboard") return <CustomerDashboard setNav={setNav} setSession={setSession} session={session} />;
-  if (session && nav === "admin") return <AdminDashboard setNav={setNav} setSession={setSession} />;
+  if (session && nav === "admin") return <AdminDashboard setNav={setNav} setSession={setSession} session={session} />;
 
   const pages = {
     home: <HomePage setNav={setNav} />, how: <HowItWorksPage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,

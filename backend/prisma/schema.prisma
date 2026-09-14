@@ -67,6 +67,7 @@ model User {
   refreshTokens      RefreshToken[]
   auditLogs          AuditLog[]
   verificationCodes  VerificationCode[]
+  messages           Message[]
 }
 
 model VerificationCode {
@@ -129,6 +130,7 @@ model ProcurementRequest {
   quotes    SupplierQuote[]
   invoices  Invoice[]
   events    RequestEvent[]
+  messages  Message[]
 }
 
 model SupplierQuote {
@@ -171,14 +173,30 @@ model Invoice {
 }
 
 model Payment {
-  id             String   @id @default(cuid())
-  invoiceId      String
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
-  provider       String   @default("mpesa")
-  amount         Int
-  status         String   @default("pending")
-  idempotencyKey String   @unique
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  invoiceId         String
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id])
+  provider          String   @default("mpesa")
+  amount            Int
+  phone             String?
+  status            String   @default("pending") // pending | confirmed | failed
+  idempotencyKey    String   @unique
+  merchantRequestId String?
+  checkoutRequestId String?  @unique
+  mpesaReceipt      String?
+  resultDesc        String?
+  createdAt         DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  requestId  String
+  request    ProcurementRequest @relation(fields: [requestId], references: [id])
+  senderId   String?
+  sender     User?    @relation(fields: [senderId], references: [id])
+  visibility String   @default("customer") // "customer" | "internal" — internal notes are never sent to the customer
+  body       String
+  createdAt  DateTime @default(now())
 }
 
 model AuditLog {

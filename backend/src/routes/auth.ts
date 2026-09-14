@@ -10,6 +10,7 @@ import {
   randomCode,
 } from "../utils/jwt.js";
 import { audit } from "../utils/audit.js";
+import { notify } from "../utils/notify.js";
 
 export const authRouter = Router();
 
@@ -43,8 +44,8 @@ authRouter.post("/register", async (req, res) => {
     data: { name, email, phone, passwordHash, role: "CUSTOMER" },
   });
 
-  // In production these codes are sent via a real email/SMS provider.
-  // Here they are logged server-side so the flow can be demonstrated end to end.
+  // Real codes, sent via whichever providers are configured (see /README-INTEGRATIONS.md).
+  // Still logged to the console too, so the flow is demonstrable even before providers are set up.
   const emailCode = randomCode();
   const phoneCode = randomCode();
   await prisma.verificationCode.createMany({
@@ -56,10 +57,20 @@ authRouter.post("/register", async (req, res) => {
   console.log(`[verification] email code for ${email}: ${emailCode}`);
   console.log(`[verification] phone OTP for ${phone}: ${phoneCode}`);
 
+  const sendResult = await notify({
+    email,
+    phone,
+    subject: "Verify your YourPlug Management account",
+    html: `<p>Hi ${name},</p><p>Your email verification code is <b>${emailCode}</b>. It expires in 30 minutes.</p>`,
+    smsText: `YourPlug: your verification code is ${phoneCode}. It expires in 10 minutes.`,
+  });
+
   await audit(user.id, "user.registered", "User", user.id);
 
   res.status(201).json({
-    message: "Account created. Check the server console for your demo verification codes.",
+    message: sendResult.email || sendResult.sms
+      ? "Account created. Check your email/phone for a verification code."
+      : "Account created. Email/SMS providers aren't configured yet — check the server logs for your verification codes.",
     userId: user.id,
   });
 });

@@ -7,6 +7,8 @@ import { authRouter } from "./routes/auth.js";
 import { requestsRouter } from "./routes/requests.js";
 import { suppliersRouter } from "./routes/suppliers.js";
 import { adminRouter } from "./routes/admin.js";
+import { invoicesRouter } from "./routes/invoices.js";
+import { paymentsRouter } from "./routes/payments.js";
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/requests", requestsRouter);
 app.use("/api/suppliers", suppliersRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/invoices", invoicesRouter);
+app.use("/api/payments", paymentsRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
