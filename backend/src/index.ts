@@ -9,6 +9,7 @@ import { suppliersRouter } from "./routes/suppliers.js";
 import { adminRouter } from "./routes/admin.js";
 import { invoicesRouter } from "./routes/invoices.js";
 import { paymentsRouter } from "./routes/payments.js";
+import { meRouter } from "./routes/me.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/api/suppliers", suppliersRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/invoices", invoicesRouter);
 app.use("/api/payments", paymentsRouter);
+app.use("/api/me", meRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

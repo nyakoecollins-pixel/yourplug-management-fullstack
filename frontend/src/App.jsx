@@ -1185,6 +1185,83 @@ function MessagesPanel({ session, requests }) {
   );
 }
 
+function ProfilePanel({ session }) {
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  React.useEffect(() => {
+    if (!session.token) return;
+    api.getProfile(session.token).then(p => {
+      setProfile(p);
+      setForm({ name: p.name, email: p.email, phone: p.phone });
+    }).catch(err => setError(err.message));
+  }, [session.token]);
+
+  const save = async () => {
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const updated = await api.updateProfile(session.token, form);
+      setProfile(updated);
+      setEditing(false);
+      setNotice("Saved. Any changed email or phone will need re-verifying.");
+    } catch (err) {
+      setError(err.message || "Couldn't save your changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!session.token) {
+    const demo = CUSTOMERS.find(c => c.name === session.name);
+    return (
+      <div className="p-8 max-w-md space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3 text-sm">
+          <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-[#0F1C2E]">{session.name}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Email</span><span>{demo?.email}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Phone</span><span>{demo?.phone}</span></div>
+        </div>
+        <p className="text-xs text-amber-700">Demo mode — log in with a real account to edit your profile.</p>
+      </div>
+    );
+  }
+
+  if (!profile) return <div className="p-8 text-sm text-slate-500">Loading…</div>;
+
+  return (
+    <div className="p-8 max-w-md space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4 text-sm">
+        {editing ? (
+          <>
+            <div><label className="text-xs text-slate-500">Name</label>
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs text-slate-500">Email</label>
+              <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs text-slate-500">Phone</label>
+              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. +254712345678" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></div>
+            {error && <p className="text-xs text-rose-600">{error}</p>}
+            <div className="flex gap-2 pt-2">
+              <PrimaryButton className="flex-1 !py-2" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save"}</PrimaryButton>
+              <SecondaryButton className="flex-1 !py-2" onClick={() => { setEditing(false); setForm({ name: profile.name, email: profile.email, phone: profile.phone }); setError(""); }}>Cancel</SecondaryButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-[#0F1C2E]">{profile.name}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Email</span><span>{profile.email} {profile.emailVerified && <CheckCircle2 size={12} className="inline text-emerald-500 ml-1" />}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Phone</span><span>{profile.phone} {profile.phoneVerified && <CheckCircle2 size={12} className="inline text-emerald-500 ml-1" />}</span></div>
+            {notice && <p className="text-xs text-emerald-700">{notice}</p>}
+            <SecondaryButton className="w-full !py-2 mt-2" onClick={() => setEditing(true)}>Edit profile</SecondaryButton>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CustomerDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
@@ -1320,16 +1397,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
               </div>
             </div>
           )}
-          {tab === "profile" && (
-            <div className="p-8 max-w-md space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-[#0F1C2E]">{session.name}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Email</span><span>{CUSTOMERS.find(c => c.name === session.name)?.email}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Phone</span><span>{CUSTOMERS.find(c => c.name === session.name)?.phone}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Two-factor authentication</span><span className="text-emerald-600 font-medium">Enabled</span></div>
-              </div>
-            </div>
-          )}
+          {tab === "profile" && <ProfilePanel session={session} />}
         </div>
       </div>
     </div>

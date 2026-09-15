@@ -70,4 +70,11 @@ export const api = {
     }),
   getRequest: (token, requestId) =>
     request(`/requests/${requestId}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getProfile: (token) => request("/me", { headers: { Authorization: `Bearer ${token}` } }),
+  updateProfile: (token, payload) =>
+    request("/me", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }),
 };
