@@ -176,9 +176,7 @@ function SecondaryButton({ children, onClick, className = "" }) {
 function SiteHeader({ nav, setNav, session, setSession }) {
   const [open, setOpen] = useState(false);
   const links = [
-    ["Home", "home"], ["How It Works", "how"], ["Services", "services"],
-    ["Corporate", "corporate"], ["International", "international"], ["Urgent", "urgent"],
-    ["About", "about"], ["FAQ", "faq"], ["Contact", "contact"],
+    ["Home", "home"], ["Services", "services"], ["International", "international"], ["Contact", "contact"],
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -216,6 +214,7 @@ function SiteHeader({ nav, setNav, session, setSession }) {
           {links.map(([label, key]) => (
             <button key={key} onClick={() => { setNav(key); setOpen(false); }} className="block text-sm text-slate-600">{label}</button>
           ))}
+          <button onClick={() => { setNav("track"); setOpen(false); }} className="block text-sm text-slate-600">Track My Order</button>
           <div className="pt-2 flex gap-3">
             <SecondaryButton onClick={() => { setNav("login"); setOpen(false); }} className="flex-1 py-2">Log in</SecondaryButton>
             <PrimaryButton onClick={() => { setNav("register"); setOpen(false); }} className="flex-1 py-2">Request</PrimaryButton>
@@ -237,20 +236,22 @@ function SiteFooter({ setNav }) {
           </div>
           <p className="text-sm text-slate-400 max-w-xs">Your personal procurement partner. We find it, compare it, buy it, and get it to you.</p>
         </div>
-        {[
-          ["Services", ["services", "corporate", "international", "urgent"]],
-          ["Company", ["about", "faq", "contact"]],
-          ["Account", ["login", "register", "track"]],
-        ].map(([title, keys]) => (
-          <div key={title}>
-            <p className="text-white text-sm font-medium mb-3">{title}</p>
-            <ul className="space-y-2">
-              {keys.map(k => (
-                <li key={k}><button onClick={() => setNav(k)} className="text-sm text-slate-400 hover:text-white capitalize">{k === "track" ? "Track Order" : k}</button></li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <div>
+          <p className="text-white text-sm font-medium mb-3">Services</p>
+          <ul className="space-y-2">
+            <li><button onClick={() => setNav("services")} className="text-sm text-slate-400 hover:text-white">Procurement services</button></li>
+            <li><button onClick={() => setNav("international")} className="text-sm text-slate-400 hover:text-white">International procurement</button></li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-white text-sm font-medium mb-3">Customer</p>
+          <ul className="space-y-2">
+            <li><button onClick={() => setNav("register")} className="text-sm text-slate-400 hover:text-white">Request an Item</button></li>
+            <li><button onClick={() => setNav("track")} className="text-sm text-slate-400 hover:text-white">Track My Order</button></li>
+            <li><button onClick={() => setNav("login")} className="text-sm text-slate-400 hover:text-white">Log in</button></li>
+            <li><button onClick={() => setNav("contact")} className="text-sm text-slate-400 hover:text-white">Contact</button></li>
+          </ul>
+        </div>
         <div>
           <p className="text-white text-sm font-medium mb-3">Legal</p>
           <ul className="space-y-2 text-sm text-slate-400">
@@ -271,22 +272,29 @@ function Eyebrow({ children }) {
 }
 
 function HomePage({ setNav }) {
-  const steps = ["Tell Us", "We Source", "We Compare", "You Approve", "We Purchase", "We Deliver"];
+  const steps = [
+    ["Tell Us", "Describe what you need — in plain language, with a photo, or a link."],
+    ["We Source", "We search for suitable suppliers and products that match your request."],
+    ["We Compare", "We compare price, specifications, reliability, delivery and warranty."],
+    ["You Approve", "We present our recommendation with full pricing for your approval."],
+    ["We Purchase", "Once approved and paid, YourPlug handles the purchase."],
+    ["We Deliver", "We coordinate delivery to your specified location."],
+  ];
   return (
     <>
       <div className="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
         <Section className="py-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <p className="text-sm font-medium text-[#0F8B75] mb-4">Your personal procurement partner</p>
-            <h1 className="text-5xl font-semibold tracking-tight text-[#0F1C2E] leading-[1.08]">Too busy to shop around?</h1>
-            <p className="mt-6 text-lg text-slate-600 max-w-lg">Tell YourPlug what you need and we'll find reliable suppliers, compare the best options, purchase on your behalf, and coordinate delivery.</p>
+            <p className="text-sm font-medium text-[#0F8B75] mb-4">Your Personal Procurement Partner</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-[#0F1C2E] leading-[1.08]">Tell us what you need. We handle the procurement.</h1>
+            <p className="mt-6 text-lg text-slate-600 max-w-lg">We find it, compare it, buy it, and get it to you — for individuals, entrepreneurs and businesses alike.</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton>
-              <SecondaryButton onClick={() => setNav("how")}>How It Works</SecondaryButton>
+              <SecondaryButton onClick={() => setNav("track")}>Track My Order</SecondaryButton>
             </div>
             <div className="mt-10 flex items-center gap-6 text-sm text-slate-500">
               <div className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[#0F8B75]" /> Verified suppliers</div>
-              <div className="flex items-center gap-1.5"><Clock size={16} className="text-[#0F8B75]" /> Avg. 2-day sourcing</div>
+              <div className="flex items-center gap-1.5"><Clock size={16} className="text-[#0F8B75]" /> Transparent process</div>
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -303,14 +311,19 @@ function HomePage({ setNav }) {
         </Section>
       </div>
 
+      <Section className="text-center max-w-3xl">
+        <p className="text-xl text-slate-700 leading-relaxed">You have something to buy. Instead of spending hours comparing suppliers yourself, hand it to YourPlug — a managed procurement service, not a marketplace.</p>
+      </Section>
+
       <Section>
-        <Eyebrow>How YourPlug works</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From a two-line request to a delivered item — six steps, zero legwork for you.</h2>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-6">
-          {steps.map((s, i) => (
-            <div key={s} className="rounded-xl border border-slate-200 p-5">
+        <Eyebrow>How it works</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">A managed process, start to finish.</h2>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {steps.map(([title, body], i) => (
+            <div key={title} className="rounded-xl border border-slate-200 p-6">
               <div className="text-xs font-medium text-slate-400 mb-3">{String(i + 1).padStart(2, "0")}</div>
-              <p className="text-sm font-medium text-[#0F1C2E]">{s}</p>
+              <p className="font-medium text-[#0F1C2E]">{title}</p>
+              <p className="text-sm text-slate-600 mt-2">{body}</p>
             </div>
           ))}
         </div>
@@ -328,12 +341,12 @@ function HomePage({ setNav }) {
         <Eyebrow>Why YourPlug</Eyebrow>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
           {[
-            [Clock, "Save time", "We handle sourcing, comparison and negotiation so you don't have to."],
-            [ShieldCheck, "Verified suppliers", "Every supplier is vetted and scored on reliability, quality and delivery."],
-            [TrendingDown, "Competitive pricing", "We negotiate on your behalf and show you exactly what you saved."],
-            [Building2, "Professional procurement", "Run by people who understand sourcing, contracts and logistics."],
-            [BarChart3, "Transparent tracking", "Every request has a live status and a full audit trail."],
-            [Truck, "Convenient delivery", "Local or international, we coordinate delivery end to end."],
+            [Clock, "Save time", "Stop spending hours searching through suppliers and websites."],
+            [ShieldCheck, "Better procurement decisions", "We compare available options before recommending a purchase."],
+            [Building2, "One managed process", "YourPlug manages sourcing, comparison, purchasing and delivery."],
+            [TrendingDown, "Supplier sourcing", "We identify suitable suppliers according to your requirements."],
+            [BarChart3, "Transparent recommendations", "You see the full procurement breakdown before you approve anything."],
+            [Truck, "Convenient", "Delegate the procurement process and focus on what matters more."],
           ].map(([Icon, title, body]) => (
             <div key={title} className="flex gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0F8B75]/10 text-[#0F8B75]"><Icon size={20} /></div>
@@ -343,70 +356,56 @@ function HomePage({ setNav }) {
         </div>
       </Section>
 
-      <Section className="grid lg:grid-cols-3 gap-6">
-        {[
-          [Building2, "Corporate procurement", "Outsource repetitive procurement and let your team focus on the business.", "corporate"],
-          [Globe2, "International procurement", "Need something from overseas? We source, purchase and coordinate delivery.", "international"],
-          [Zap, "Need it today?", "Emergency procurement for time-sensitive purchases, prioritized end to end.", "urgent"],
-        ].map(([Icon, title, body, key]) => (
-          <button key={key} onClick={() => setNav(key)} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
-            <Icon size={22} className="text-[#0F1C2E]" />
-            <p className="mt-4 font-medium text-lg text-[#0F1C2E]">{title}</p>
-            <p className="text-sm text-slate-600 mt-2">{body}</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">Learn more <ChevronRight size={14} /></span>
-          </button>
-        ))}
+      <Section className="bg-slate-50 rounded-3xl">
+        <Eyebrow>Individual & business procurement</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">One platform, whether you're buying for yourself or your business.</h2>
+        <p className="mt-4 text-slate-600 max-w-2xl">Individuals get the same sourcing, comparison and delivery process as businesses — register as an individual or a business, and the procurement engine underneath is the same either way.</p>
+        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Get started</PrimaryButton></div>
       </Section>
 
-      <Section className="bg-slate-50 rounded-3xl">
-        <Eyebrow>Customers</Eyebrow>
-        <div className="grid md:grid-cols-3 gap-6 mt-8">
-          {[
-            ["James Mwangi", "Individual", "I sent one WhatsApp-style message about a laptop I needed and had it delivered two days later, cheaper than I expected."],
-            ["Aisha Hassan", "Individual", "They found a commercial fridge supplier I never would have located on my own, and negotiated the price down."],
-            ["Brian Otieno", "Prime Retail Ltd", "We moved all our office procurement to YourPlug. Our team stopped chasing suppliers entirely."],
-          ].map(([name, role, quote]) => (
-            <div key={name} className="rounded-xl bg-white border border-slate-200 p-6">
-              <div className="flex gap-1 text-amber-400 mb-3">{[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}</div>
-              <p className="text-sm text-slate-700">"{quote}"</p>
-              <p className="mt-4 text-sm font-medium text-[#0F1C2E]">{name} <span className="text-slate-400 font-normal">— {role}</span></p>
-            </div>
+      <Section className="grid lg:grid-cols-2 gap-6">
+        <button onClick={() => setNav("services")} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
+          <Package size={22} className="text-[#0F1C2E]" />
+          <p className="mt-4 font-medium text-lg text-[#0F1C2E]">Services</p>
+          <p className="text-sm text-slate-600 mt-2">Personal, business, local and urgent procurement — one service, tailored to what you need.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">See services <ChevronRight size={14} /></span>
+        </button>
+        <button onClick={() => setNav("international")} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
+          <Globe2 size={22} className="text-[#0F1C2E]" />
+          <p className="mt-4 font-medium text-lg text-[#0F1C2E]">International procurement</p>
+          <p className="text-sm text-slate-600 mt-2">Sourcing from overseas, with an estimated landed cost before you commit to anything.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">Estimate a cost <ChevronRight size={14} /></span>
+        </button>
+      </Section>
+
+      <Section>
+        <Eyebrow>About YourPlug</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-2xl">A Kenyan procurement technology company, built to scale.</h2>
+        <p className="mt-5 text-slate-600 max-w-2xl">YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement staff with technology that keeps every request transparent, from the first message to final delivery.</p>
+        <div className="mt-10 grid sm:grid-cols-3 gap-6">
+          {[["Verified supplier network", "Suppliers scored on price, reliability, delivery and warranty performance."], ["Trained procurement staff", "Every request is handled by a person, not left to an algorithm alone."], ["Full audit trail", "Every status change and transaction event is logged and available to you."]].map(([t, b]) => (
+            <div key={t} className="rounded-xl border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
           ))}
         </div>
       </Section>
 
+      <Section className="bg-slate-50 rounded-3xl">
+        <Eyebrow>Contact</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E]">Talk to YourPlug directly.</h2>
+        <div className="mt-8 grid sm:grid-cols-3 gap-4">
+          <a href="#" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><MessageSquare size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">WhatsApp</span></a>
+          <a href="tel:" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><Phone size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">Call us</span></a>
+          <a href="mailto:" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><Mail size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">Email</span></a>
+        </div>
+        <p className="mt-4 text-xs text-slate-400">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
+        <button onClick={() => setNav("contact")} className="mt-4 text-sm font-medium text-[#0F8B75]">Full contact page →</button>
+      </Section>
+
       <Section className="text-center">
         <h2 className="text-3xl font-semibold text-[#0F1C2E]">Stop searching. Start requesting.</h2>
-        <div className="mt-8 flex justify-center"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
+        <div className="mt-8 flex justify-center gap-4"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton><SecondaryButton onClick={() => setNav("track")}>Track My Order</SecondaryButton></div>
       </Section>
     </>
-  );
-}
-
-function HowItWorksPage({ setNav }) {
-  const steps = [
-    ["Tell us", "Describe what you need in plain language — text, a photo, or a link. No product-catalogue browsing required."],
-    ["We source", "Our agents and AI assistant identify verified suppliers who can meet your specification, budget and timeline."],
-    ["We compare", "We request quotations, score suppliers on price, reliability, delivery and warranty, and negotiate where it helps."],
-    ["You approve", "We present one clear recommendation with full pricing. You approve, ask for another option, or decline."],
-    ["We purchase", "Once approved and paid, we place the order and manage the supplier relationship on your behalf."],
-    ["We deliver", "We coordinate pickup and delivery, and keep you updated with live tracking until it arrives."],
-  ];
-  return (
-    <Section>
-      <Eyebrow>How it works</Eyebrow>
-      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">A managed procurement service, not a marketplace.</h1>
-      <p className="mt-4 text-slate-600 max-w-2xl">You never search listings, contact suppliers, or manage multiple deliveries. You tell us once, approve one recommendation, and pay one invoice.</p>
-      <div className="mt-14 space-y-0">
-        {steps.map(([title, body], i) => (
-          <div key={title} className="flex gap-6 py-7 border-t border-slate-200 first:border-t-0">
-            <div className="text-2xl font-semibold text-slate-300 w-10 shrink-0">{i + 1}</div>
-            <div><p className="font-medium text-[#0F1C2E] text-lg">{title}</p><p className="text-slate-600 mt-1 max-w-xl">{body}</p></div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-12"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
-    </Section>
   );
 }
 
@@ -437,32 +436,6 @@ function ServicesPage({ setNav }) {
   );
 }
 
-function CorporatePage({ setNav }) {
-  return (
-    <Section className="grid lg:grid-cols-2 gap-16 items-start">
-      <div>
-        <Eyebrow>Corporate procurement</Eyebrow>
-        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Outsource procurement. Keep your team focused.</h1>
-        <p className="mt-5 text-slate-600">Give your organization a single procurement partner instead of ten open supplier conversations. Set spend limits, approval chains, and let YourPlug run the sourcing.</p>
-        <ul className="mt-8 space-y-3 text-sm text-slate-700">
-          {["Multiple users across departments", "Configurable approval hierarchy by spend level", "Monthly statements and procurement reports", "Recurring procurement schedules", "Dedicated account visibility for finance and procurement officers"].map(t => (
-            <li key={t} className="flex gap-2"><CheckCircle2 size={16} className="text-[#0F8B75] mt-0.5 shrink-0" /> {t}</li>
-          ))}
-        </ul>
-        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Set up a corporate account</PrimaryButton></div>
-      </div>
-      <div className="rounded-2xl border border-slate-200 p-6">
-        <p className="text-sm font-medium text-[#0F1C2E] mb-4">Example approval rule</p>
-        <div className="space-y-3 text-sm">
-          {[["Under KSh 10,000", "No approval required"], ["KSh 10,000 – 50,000", "Manager approval"], ["Above KSh 50,000", "Senior approval"]].map(([a, b]) => (
-            <div key={a} className="flex justify-between rounded-lg bg-slate-50 px-4 py-3"><span className="text-slate-600">{a}</span><span className="font-medium text-[#0F1C2E]">{b}</span></div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
 function InternationalPage({ setNav }) {
   return (
     <Section className="grid lg:grid-cols-2 gap-16 items-start">
@@ -479,49 +452,8 @@ function InternationalPage({ setNav }) {
             <div key={a} className="flex justify-between py-1.5 border-b border-slate-100 text-slate-600"><span>{a}</span><span className="text-[#0F1C2E]">{b}</span></div>
           ))}
           <div className="flex justify-between pt-3 font-medium text-[#0F1C2E]"><span>Estimated landed cost</span><span>KSh 114,100</span></div>
-          <p className="text-xs text-slate-400 pt-2">Estimated — confirmed costs are provided once supplier and shipping quotes are finalized.</p>
+          <p className="text-xs text-slate-400 pt-2">Illustrative example only — Verification Required. Real estimates require the AI International Cost Estimator (not yet connected to live exchange rate/duty data).</p>
         </div>
-      </div>
-    </Section>
-  );
-}
-
-function UrgentPage({ setNav }) {
-  return (
-    <Section className="grid lg:grid-cols-2 gap-16 items-start">
-      <div>
-        <Eyebrow>Urgent procurement</Eyebrow>
-        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Need it today?</h1>
-        <p className="mt-5 text-slate-600">Emergency procurement is prioritized ahead of standard requests. A premium service fee applies, reflecting the expedited sourcing and delivery effort involved.</p>
-        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Start an urgent request</PrimaryButton></div>
-      </div>
-      <div className="space-y-3">
-        {[
-          ["Normal", "Standard sourcing timeline, no added fee"],
-          ["High", "Prioritized queue placement"],
-          ["Urgent", "Same-day sourcing where suppliers allow, added fee applies"],
-          ["Emergency", "Immediate agent assignment, expedited delivery options, premium fee applies"],
-        ].map(([level, body]) => (
-          <div key={level} className="rounded-xl border border-slate-200 p-5 flex items-center justify-between">
-            <div><p className="font-medium text-[#0F1C2E]">{level}</p><p className="text-sm text-slate-600 mt-0.5">{body}</p></div>
-            <UrgencyTag urgency={level} />
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function AboutPage() {
-  return (
-    <Section>
-      <Eyebrow>About us</Eyebrow>
-      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">A Kenyan procurement technology company, built to scale.</h1>
-      <p className="mt-5 text-slate-600 max-w-2xl">YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement agents with technology that keeps every request transparent, from the first message to final delivery.</p>
-      <div className="mt-12 grid sm:grid-cols-3 gap-6">
-        {[["Verified supplier network", "Suppliers scored on price, reliability, quality, delivery and warranty performance."], ["Trained procurement agents", "Every request is handled by an agent, not left to an algorithm alone."], ["Full audit trail", "Every status change and transaction event is logged and available to you."]].map(([t, b]) => (
-          <div key={t} className="rounded-xl border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
-        ))}
       </div>
     </Section>
   );
@@ -545,35 +477,6 @@ function ContactPage() {
         <textarea placeholder="How can we help?" rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
         <PrimaryButton className="w-full">Send message</PrimaryButton>
       </form>
-    </Section>
-  );
-}
-
-function FAQPage() {
-  const faqs = [
-    ["Is YourPlug a marketplace?", "No. You never browse listings or negotiate with suppliers directly. You describe what you need and we run the entire procurement process."],
-    ["How is pricing determined?", "You see the supplier's price, our procurement fee, and any delivery fee broken out separately before you approve a purchase."],
-    ["How do I pay?", "Primarily via M-Pesa. Each invoice has a unique payment reference, and payment is confirmed automatically once received."],
-    ["Can I request international items?", "Yes — see International Procurement for an example landed-cost breakdown."],
-    ["What if the item arrives damaged or wrong?", "Report it from your dashboard. We manage returns, replacements and refunds with the supplier or courier on your behalf."],
-    ["Do you support corporate accounts?", "Yes, with multiple users, department budgets and configurable approval rules."],
-  ];
-  const [openIdx, setOpenIdx] = useState(0);
-  return (
-    <Section>
-      <Eyebrow>FAQ</Eyebrow>
-      <h1 className="text-4xl font-semibold text-[#0F1C2E]">Frequently asked questions.</h1>
-      <div className="mt-10 max-w-2xl divide-y divide-slate-200 border-t border-b border-slate-200">
-        {faqs.map(([q, a], i) => (
-          <div key={q}>
-            <button onClick={() => setOpenIdx(openIdx === i ? -1 : i)} className="w-full flex items-center justify-between py-5 text-left">
-              <span className="font-medium text-[#0F1C2E]">{q}</span>
-              <ChevronDown size={18} className={`text-slate-400 transition-transform ${openIdx === i ? "rotate-180" : ""}`} />
-            </button>
-            {openIdx === i && <p className="pb-5 text-sm text-slate-600">{a}</p>}
-          </div>
-        ))}
-      </div>
     </Section>
   );
 }
@@ -1927,9 +1830,8 @@ export default function App() {
   if (session && nav === "admin") return <AdminDashboard setNav={setNav} setSession={setSession} session={session} />;
 
   const pages = {
-    home: <HomePage setNav={setNav} />, how: <HowItWorksPage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
-    corporate: <CorporatePage setNav={setNav} />, international: <InternationalPage setNav={setNav} />, urgent: <UrgentPage setNav={setNav} />,
-    about: <AboutPage />, contact: <ContactPage />, faq: <FAQPage />, track: <TrackOrderPage />,
+    home: <HomePage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
+    international: <InternationalPage setNav={setNav} />, contact: <ContactPage />, track: <TrackOrderPage />,
     login: <AuthPage mode="login" setNav={setNav} onAuth={handleAuth} />, register: <AuthPage mode="register" setNav={setNav} onAuth={handleAuth} />,
   };
 
