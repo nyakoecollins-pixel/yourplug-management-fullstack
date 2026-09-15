@@ -4,7 +4,7 @@ import {
   Globe2, Zap, Building2, Menu, X, ChevronRight, Upload, MapPin, Phone, Mail,
   FileText, MessageSquare, Bell, Settings, LogOut, LayoutGrid, ClipboardList,
   Receipt, CreditCard, Users, Wrench, BarChart3, AlertTriangle, Star, Plus,
-  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award
+  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart
 } from "lucide-react";
 import { api } from "./lib/api.js";
 
@@ -225,9 +225,24 @@ function SiteHeader({ nav, setNav, session, setSession }) {
   );
 }
 
+/** Renders a real photo with a graceful colored-gradient fallback if the
+ *  image URL ever fails to load, so the layout never shows a broken icon. */
+function Photo({ src, alt, className = "" }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className={`relative overflow-hidden bg-gradient-to-br from-[#0F8B75]/20 via-sky-100 to-amber-100 ${className}`}>
+      {!failed && (
+        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}
+          className="absolute inset-0 h-full w-full object-cover" />
+      )}
+    </div>
+  );
+}
+
 function SiteFooter({ setNav }) {
   return (
-    <footer className="border-t border-slate-200 bg-[#0F1C2E] text-slate-300">
+    <footer className="bg-[#0F1C2E] text-slate-300">
+      <div className="h-1.5 w-full bg-gradient-to-r from-[#0F8B75] via-sky-400 to-amber-400" />
       <div className="mx-auto max-w-7xl px-6 py-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2 mb-3">
@@ -235,6 +250,11 @@ function SiteFooter({ setNav }) {
             <span className="text-white font-semibold">YourPlug Management</span>
           </div>
           <p className="text-sm text-slate-400 max-w-xs">Your personal procurement partner. We find it, compare it, buy it, and get it to you.</p>
+          <div className="mt-5 flex gap-3">
+            <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-[#0F8B75] transition-colors"><MessageSquare size={15} /></a>
+            <a href="tel:" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-[#0F8B75] transition-colors"><Phone size={15} /></a>
+            <a href="mailto:" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-[#0F8B75] transition-colors"><Mail size={15} /></a>
+          </div>
         </div>
         <div>
           <p className="text-white text-sm font-medium mb-3">Services</p>
@@ -267,45 +287,59 @@ function SiteFooter({ setNav }) {
 function Section({ children, className = "" }) {
   return <section className={`mx-auto max-w-7xl px-6 py-20 ${className}`}>{children}</section>;
 }
-function Eyebrow({ children }) {
-  return <p className="text-sm font-medium text-[#0F8B75] mb-3">{children}</p>;
+function Eyebrow({ children, color = "text-[#0F8B75]" }) {
+  return <p className={`text-sm font-semibold tracking-wide mb-3 ${color}`}>{children}</p>;
 }
 
+const HOW_IT_WORKS = [
+  [MessageSquare, "Tell Us", "Describe what you need — in plain language, with a photo, or a link.", "bg-[#0F8B75]"],
+  [Search, "We Source", "We search for suitable suppliers and products that match your request.", "bg-sky-500"],
+  [BarChart3, "We Compare", "We compare price, specifications, reliability, delivery and warranty.", "bg-amber-500"],
+  [CheckCircle2, "You Approve", "We present our recommendation with full pricing for your approval.", "bg-[#0F8B75]"],
+  [ShoppingCart, "We Purchase", "Once approved and paid, YourPlug handles the purchase.", "bg-sky-500"],
+  [PackageCheck, "We Deliver", "We coordinate delivery to your specified location.", "bg-amber-500"],
+];
+
+const WHY_CARDS = [
+  [Clock, "Save time", "Stop spending hours searching through suppliers and websites.", "bg-[#0F8B75]"],
+  [TrendingDown, "Compare before you buy", "We compare available options before recommending a purchase.", "bg-sky-500"],
+  [Search, "We search for you", "We identify suitable sourcing options that match your requirements.", "bg-amber-500"],
+  [PackageCheck, "Purchase to delivery", "We help coordinate the whole process, end to end.", "bg-[#0F8B75]"],
+  [Globe2, "Local & international", "Procurement beyond your immediate location, with landed-cost estimates.", "bg-sky-500"],
+  [HandHeart, "One procurement partner", "One place to manage every request, instead of ten open conversations.", "bg-amber-500"],
+];
+
 function HomePage({ setNav }) {
-  const steps = [
-    ["Tell Us", "Describe what you need — in plain language, with a photo, or a link."],
-    ["We Source", "We search for suitable suppliers and products that match your request."],
-    ["We Compare", "We compare price, specifications, reliability, delivery and warranty."],
-    ["You Approve", "We present our recommendation with full pricing for your approval."],
-    ["We Purchase", "Once approved and paid, YourPlug handles the purchase."],
-    ["We Deliver", "We coordinate delivery to your specified location."],
-  ];
   return (
     <>
-      <div className="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
-        <Section className="py-24 grid lg:grid-cols-2 gap-16 items-center">
+      <div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-[#0F1C2E] via-[#0F1C2E] to-[#0c3b34]">
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-amber-400/20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
+        <Section className="relative py-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <p className="text-sm font-medium text-[#0F8B75] mb-4">Your Personal Procurement Partner</p>
-            <h1 className="text-5xl font-semibold tracking-tight text-[#0F1C2E] leading-[1.08]">Tell us what you need. We handle the procurement.</h1>
-            <p className="mt-6 text-lg text-slate-600 max-w-lg">We find it, compare it, buy it, and get it to you — for individuals, entrepreneurs and businesses alike.</p>
+            <p className="text-sm font-semibold text-amber-300 mb-4 tracking-wide">Your Personal Procurement Partner</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-white leading-[1.08]">Tell us what you need. We handle the procurement.</h1>
+            <p className="mt-6 text-lg text-slate-300 max-w-lg">We find it, compare it, buy it, and get it to you — for individuals, entrepreneurs and businesses alike.</p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton>
-              <SecondaryButton onClick={() => setNav("track")}>Track My Order</SecondaryButton>
+              <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton>
+              <button onClick={() => setNav("track")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Track My Order</button>
             </div>
-            <div className="mt-10 flex items-center gap-6 text-sm text-slate-500">
-              <div className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[#0F8B75]" /> Verified suppliers</div>
-              <div className="flex items-center gap-1.5"><Clock size={16} className="text-[#0F8B75]" /> Transparent process</div>
+            <div className="mt-10 flex items-center gap-6 text-sm text-slate-300">
+              <div className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-amber-300" /> Verified suppliers</div>
+              <div className="flex items-center gap-1.5"><Clock size={16} className="text-amber-300" /> Transparent process</div>
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-slate-400 mb-4">YPM-202609-00127 · HP EliteBook</p>
-            <div className="space-y-3">
-              {[["Request submitted", true], ["Suppliers compared", true], ["You approved", true], ["Purchased & dispatched", true], ["In transit", "active"], ["Delivered", false]].map(([label, s], i) => (
-                <div key={i} className="flex items-center gap-3">
-                  {s === true ? <CheckCircle2 size={18} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={18} className="text-amber-500 fill-amber-500" /> : <Circle size={18} className="text-slate-300" />}
-                  <span className={`text-sm ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
-                </div>
-              ))}
+          <div className="relative h-[420px] hidden sm:block">
+            <Photo src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=700&q=70" alt="Procurement professional at work"
+              className="absolute top-0 right-0 w-72 h-80 rounded-2xl shadow-2xl rotate-2" />
+            <Photo src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=500&q=70" alt="Delivery package"
+              className="absolute bottom-0 left-0 w-52 h-52 rounded-2xl shadow-2xl -rotate-3" />
+            <div className="absolute top-10 left-0 w-64 rounded-xl bg-white p-4 shadow-xl">
+              <p className="text-[11px] text-slate-400 mb-2">YPM-202609-00127 · HP EliteBook</p>
+              <div className="flex items-center gap-2 text-sm text-[#0F1C2E] font-medium"><Circle size={14} className="text-amber-500 fill-amber-500" /> In transit</div>
+            </div>
+            <div className="absolute bottom-8 right-6 rounded-xl bg-white px-4 py-3 shadow-xl flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-[#0F8B75]" /><span className="text-xs font-medium text-[#0F1C2E]">Supplier verified</span>
             </div>
           </div>
         </Section>
@@ -318,45 +352,59 @@ function HomePage({ setNav }) {
       <Section>
         <Eyebrow>How it works</Eyebrow>
         <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">A managed process, start to finish.</h2>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {steps.map(([title, body], i) => (
-            <div key={title} className="rounded-xl border border-slate-200 p-6">
-              <div className="text-xs font-medium text-slate-400 mb-3">{String(i + 1).padStart(2, "0")}</div>
-              <p className="font-medium text-[#0F1C2E]">{title}</p>
-              <p className="text-sm text-slate-600 mt-2">{body}</p>
-            </div>
-          ))}
+        <div className="mt-14 relative">
+          <div className="hidden lg:block absolute top-7 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0F8B75] via-sky-400 to-amber-400" />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
+            {HOW_IT_WORKS.map(([Icon, title, body, bg], i) => (
+              <div key={title} className="relative flex flex-col items-center text-center">
+                <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full ${bg} text-white shadow-md`}><Icon size={22} /></div>
+                <p className="mt-4 text-xs font-medium text-slate-400">{String(i + 1).padStart(2, "0")}</p>
+                <p className="mt-1 font-medium text-[#0F1C2E]">{title}</p>
+                <p className="text-xs text-slate-500 mt-2">{body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 
-      <Section className="bg-slate-50 rounded-3xl">
-        <Eyebrow>What can we procure?</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">If it can be sourced and delivered, we can procure it.</h2>
-        <div className="mt-10 flex flex-wrap gap-3">
-          {CATEGORIES.map(c => <span key={c} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700">{c}</span>)}
+      <Section className="bg-gradient-to-br from-sky-50 via-white to-[#0F8B75]/5 rounded-3xl">
+        <Eyebrow>What do you need?</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday essentials to specialized business requirements.</h2>
+        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you're looking for and we'll handle the procurement process. These are examples — not a catalogue to browse.</p>
+        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            [CATEGORIES[0], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[1], "bg-sky-100 text-sky-700"], [CATEGORIES[2], "bg-amber-100 text-amber-700"],
+            [CATEGORIES[3], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[4], "bg-sky-100 text-sky-700"], [CATEGORIES[5], "bg-amber-100 text-amber-700"],
+            [CATEGORIES[6], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[7], "bg-sky-100 text-sky-700"], [CATEGORIES[8], "bg-amber-100 text-amber-700"],
+          ].map(([c, tone]) => (
+            <button key={c} onClick={() => setNav("register")} className={`rounded-xl px-4 py-5 text-sm font-medium text-left hover:-translate-y-0.5 transition-transform ${tone}`}>{c}</button>
+          ))}
         </div>
       </Section>
 
       <Section>
         <Eyebrow>Why YourPlug</Eyebrow>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-          {[
-            [Clock, "Save time", "Stop spending hours searching through suppliers and websites."],
-            [ShieldCheck, "Better procurement decisions", "We compare available options before recommending a purchase."],
-            [Building2, "One managed process", "YourPlug manages sourcing, comparison, purchasing and delivery."],
-            [TrendingDown, "Supplier sourcing", "We identify suitable suppliers according to your requirements."],
-            [BarChart3, "Transparent recommendations", "You see the full procurement breakdown before you approve anything."],
-            [Truck, "Convenient", "Delegate the procurement process and focus on what matters more."],
-          ].map(([Icon, title, body]) => (
-            <div key={title} className="flex gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0F8B75]/10 text-[#0F8B75]"><Icon size={20} /></div>
-              <div><p className="font-medium text-[#0F1C2E]">{title}</p><p className="text-sm text-slate-600 mt-1">{body}</p></div>
+          {WHY_CARDS.map(([Icon, title, body, bg]) => (
+            <div key={title} className="rounded-2xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg} text-white mb-4`}><Icon size={20} /></div>
+              <p className="font-medium text-[#0F1C2E]">{title}</p><p className="text-sm text-slate-600 mt-1">{body}</p>
             </div>
           ))}
         </div>
       </Section>
 
-      <Section className="bg-slate-50 rounded-3xl">
+      <Section className="grid lg:grid-cols-2 gap-12 items-center">
+        <Photo src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=70" alt="Team reviewing procurement options" className="rounded-2xl h-96 shadow-lg" />
+        <div>
+          <Eyebrow color="text-sky-600">One managed process</Eyebrow>
+          <h2 className="text-3xl font-semibold text-[#0F1C2E]">We do the searching. You make the decision.</h2>
+          <p className="mt-4 text-slate-600">No browsing listings, no chasing suppliers, no juggling multiple deliveries. You tell us once, we bring back one clear recommendation, and you approve before anything is purchased.</p>
+          <div className="mt-6"><PrimaryButton onClick={() => setNav("register")}>Start a Request</PrimaryButton></div>
+        </div>
+      </Section>
+
+      <Section className="bg-gradient-to-br from-[#0F8B75]/10 to-sky-50 rounded-3xl">
         <Eyebrow>Individual & business procurement</Eyebrow>
         <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">One platform, whether you're buying for yourself or your business.</h2>
         <p className="mt-4 text-slate-600 max-w-2xl">Individuals get the same sourcing, comparison and delivery process as businesses — register as an individual or a business, and the procurement engine underneath is the same either way.</p>
@@ -364,46 +412,61 @@ function HomePage({ setNav }) {
       </Section>
 
       <Section className="grid lg:grid-cols-2 gap-6">
-        <button onClick={() => setNav("services")} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
-          <Package size={22} className="text-[#0F1C2E]" />
-          <p className="mt-4 font-medium text-lg text-[#0F1C2E]">Services</p>
-          <p className="text-sm text-slate-600 mt-2">Personal, business, local and urgent procurement — one service, tailored to what you need.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">See services <ChevronRight size={14} /></span>
+        <button onClick={() => setNav("services")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
+          <Photo src="https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=800&q=70" alt="Procurement services" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/30 to-transparent" />
+          <div className="relative h-full flex flex-col justify-end p-7">
+            <p className="font-medium text-lg text-white">Services</p>
+            <p className="text-sm text-slate-200 mt-1">Personal, business, local and urgent procurement.</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">See services <ChevronRight size={14} /></span>
+          </div>
         </button>
-        <button onClick={() => setNav("international")} className="text-left rounded-2xl border border-slate-200 p-7 hover:border-slate-300 hover:shadow-sm transition">
-          <Globe2 size={22} className="text-[#0F1C2E]" />
-          <p className="mt-4 font-medium text-lg text-[#0F1C2E]">International procurement</p>
-          <p className="text-sm text-slate-600 mt-2">Sourcing from overseas, with an estimated landed cost before you commit to anything.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0F8B75]">Estimate a cost <ChevronRight size={14} /></span>
+        <button onClick={() => setNav("international")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
+          <Photo src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=800&q=70" alt="International shipping" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c2d4f]/90 via-[#0c2d4f]/30 to-transparent" />
+          <div className="relative h-full flex flex-col justify-end p-7">
+            <p className="font-medium text-lg text-white">International procurement</p>
+            <p className="text-sm text-slate-200 mt-1">Sourcing from overseas with an estimated landed cost.</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">Estimate a cost <ChevronRight size={14} /></span>
+          </div>
         </button>
       </Section>
 
-      <Section>
-        <Eyebrow>About YourPlug</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-2xl">A Kenyan procurement technology company, built to scale.</h2>
-        <p className="mt-5 text-slate-600 max-w-2xl">YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement staff with technology that keeps every request transparent, from the first message to final delivery.</p>
-        <div className="mt-10 grid sm:grid-cols-3 gap-6">
-          {[["Verified supplier network", "Suppliers scored on price, reliability, delivery and warranty performance."], ["Trained procurement staff", "Every request is handled by a person, not left to an algorithm alone."], ["Full audit trail", "Every status change and transaction event is logged and available to you."]].map(([t, b]) => (
-            <div key={t} className="rounded-xl border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
-          ))}
+      <Section className="bg-gradient-to-br from-amber-50 via-white to-slate-50 rounded-3xl">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <Eyebrow color="text-amber-600">About YourPlug</Eyebrow>
+            <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-lg">Technology powered, human managed.</h2>
+            <p className="mt-5 text-slate-600 max-w-xl">Procurement shouldn't be stressful. YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement staff with technology that keeps every request transparent, from the first message to final delivery.</p>
+            <div className="mt-8 grid sm:grid-cols-3 gap-4">
+              {[["Verified suppliers", "Scored on price, reliability, delivery and warranty."], ["Real staff", "Every request is handled by a person, not left to an algorithm."], ["Full audit trail", "Every status change is logged and available to you."]].map(([t, b]) => (
+                <div key={t}><p className="font-medium text-sm text-[#0F1C2E]">{t}</p><p className="text-xs text-slate-500 mt-1">{b}</p></div>
+              ))}
+            </div>
+          </div>
+          <Photo src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=70" alt="YourPlug procurement team" className="rounded-2xl h-96 shadow-lg" />
         </div>
       </Section>
 
-      <Section className="bg-slate-50 rounded-3xl">
-        <Eyebrow>Contact</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E]">Talk to YourPlug directly.</h2>
+      <Section className="bg-[#0F8B75] rounded-3xl text-white">
+        <Eyebrow color="text-amber-200">Contact</Eyebrow>
+        <h2 className="text-3xl font-semibold">Talk to YourPlug directly.</h2>
         <div className="mt-8 grid sm:grid-cols-3 gap-4">
-          <a href="#" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><MessageSquare size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">WhatsApp</span></a>
-          <a href="tel:" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><Phone size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">Call us</span></a>
-          <a href="mailto:" className="rounded-xl border border-slate-200 bg-white p-5 flex items-center gap-3 hover:border-slate-300"><Mail size={18} className="text-[#0F8B75]" /><span className="text-sm font-medium text-[#0F1C2E]">Email</span></a>
+          <a href="#" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><MessageSquare size={18} /><span className="text-sm font-medium">WhatsApp</span></a>
+          <a href="tel:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Phone size={18} /><span className="text-sm font-medium">Call us</span></a>
+          <a href="mailto:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Mail size={18} /><span className="text-sm font-medium">Email</span></a>
         </div>
-        <p className="mt-4 text-xs text-slate-400">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
-        <button onClick={() => setNav("contact")} className="mt-4 text-sm font-medium text-[#0F8B75]">Full contact page →</button>
+        <p className="mt-4 text-xs text-emerald-100">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
+        <button onClick={() => setNav("contact")} className="mt-4 text-sm font-medium text-white underline">Full contact page →</button>
       </Section>
 
-      <Section className="text-center">
-        <h2 className="text-3xl font-semibold text-[#0F1C2E]">Stop searching. Start requesting.</h2>
-        <div className="mt-8 flex justify-center gap-4"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton><SecondaryButton onClick={() => setNav("track")}>Track My Order</SecondaryButton></div>
+      <Section className="text-center bg-[#0F1C2E] rounded-3xl text-white relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-amber-400/20 blur-3xl" />
+        <h2 className="relative text-3xl font-semibold">Stop searching. Start requesting.</h2>
+        <div className="relative mt-8 flex justify-center gap-4">
+          <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton>
+          <button onClick={() => setNav("track")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Track My Order</button>
+        </div>
       </Section>
     </>
   );
@@ -411,23 +474,27 @@ function HomePage({ setNav }) {
 
 function ServicesPage({ setNav }) {
   const cards = [
-    [Package, "Standard procurement", "Everyday purchases — electronics, office supplies, furniture — sourced and delivered without the legwork."],
-    [Building2, "Corporate procurement", "Multi-user accounts, approval hierarchies, spending limits and monthly statements for organizations."],
-    [Globe2, "International procurement", "Sourcing from overseas suppliers with transparent landed-cost estimates and customs handling."],
-    [Zap, "Urgent procurement", "Emergency sourcing for time-sensitive purchases, prioritized ahead of standard requests."],
-    [Wrench, "Industrial & specialty", "Hard-to-find equipment and specialty items sourced through our verified industrial supplier network."],
-    [FileText, "Recurring procurement", "Scheduled repeat purchases — like monthly office supplies — created automatically on your behalf."],
+    [Package, "Personal procurement", "Everyday purchases sourced and delivered without the legwork.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
+    [Building2, "Business procurement", "Multi-user accounts, spending visibility and monthly statements for organizations.", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=700&q=70"],
+    [Search, "Supplier sourcing", "We identify suitable suppliers based on your requirements.", "https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=700&q=70"],
+    [Globe2, "International procurement", "Sourcing overseas with transparent landed-cost estimates.", "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=700&q=70"],
+    [Zap, "Urgent procurement", "Priority handling for time-sensitive requirements.", "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=700&q=70"],
+    [PackageCheck, "Delivery coordination", "We coordinate delivery after the purchase is made.", "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=700&q=70"],
   ];
   return (
     <Section>
       <Eyebrow>Services</Eyebrow>
       <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">Procurement services for every kind of buyer.</h1>
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map(([Icon, title, body]) => (
-          <div key={title} className="rounded-2xl border border-slate-200 p-7">
-            <Icon size={22} className="text-[#0F1C2E]" />
-            <p className="mt-4 font-medium text-[#0F1C2E]">{title}</p>
-            <p className="text-sm text-slate-600 mt-2">{body}</p>
+        {cards.map(([Icon, title, body, img]) => (
+          <div key={title} className="group relative rounded-2xl overflow-hidden h-56 shadow-sm hover:shadow-lg transition-shadow">
+            <Photo src={img} alt={title} className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/20 to-transparent" />
+            <div className="relative h-full flex flex-col justify-end p-6">
+              <Icon size={18} className="text-amber-300 mb-2" />
+              <p className="font-medium text-white">{title}</p>
+              <p className="text-xs text-slate-200 mt-1">{body}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -438,24 +505,32 @@ function ServicesPage({ setNav }) {
 
 function InternationalPage({ setNav }) {
   return (
-    <Section className="grid lg:grid-cols-2 gap-16 items-start">
-      <div>
-        <Eyebrow>International procurement</Eyebrow>
-        <h1 className="text-4xl font-semibold text-[#0F1C2E]">Need something from overseas?</h1>
-        <p className="mt-5 text-slate-600">We source, purchase and coordinate delivery from international suppliers, with a transparent landed-cost estimate before you approve anything.</p>
-        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Request an international item</PrimaryButton></div>
+    <>
+      <div className="bg-gradient-to-br from-[#0c2d4f] via-[#0c2d4f] to-[#0a1f38] text-white">
+        <Section className="grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <Eyebrow color="text-sky-300">International procurement</Eyebrow>
+            <h1 className="text-4xl font-semibold">Need something from abroad? We've got it covered.</h1>
+            <p className="mt-5 text-slate-300">Estimate your landed cost, understand the import expenses, and let YourPlug manage the procurement.</p>
+            <div className="mt-8"><PrimaryButton onClick={() => setNav("register")} className="!bg-amber-500 hover:!bg-amber-600">Request an international item</PrimaryButton></div>
+          </div>
+          <Photo src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=800&q=70" alt="Shipping containers at port" className="rounded-2xl h-80 shadow-2xl" />
+        </Section>
       </div>
-      <div className="rounded-2xl border border-slate-200 p-6">
-        <p className="text-sm font-medium text-[#0F1C2E] mb-4">Estimated landed cost — example</p>
-        <div className="space-y-2 text-sm">
-          {[["Product cost (USD 620)", "KSh 80,600"], ["Exchange rate", "1 USD = KSh 130 (est.)"], ["International shipping", "KSh 14,200"], ["Estimated duties / taxes", "KSh 12,800"], ["YourPlug procurement fee", "KSh 6,500"]].map(([a, b]) => (
-            <div key={a} className="flex justify-between py-1.5 border-b border-slate-100 text-slate-600"><span>{a}</span><span className="text-[#0F1C2E]">{b}</span></div>
-          ))}
-          <div className="flex justify-between pt-3 font-medium text-[#0F1C2E]"><span>Estimated landed cost</span><span>KSh 114,100</span></div>
-          <p className="text-xs text-slate-400 pt-2">Illustrative example only — Verification Required. Real estimates require the AI International Cost Estimator (not yet connected to live exchange rate/duty data).</p>
+      <Section>
+        <Eyebrow color="text-sky-600">International Cost Estimator</Eyebrow>
+        <h2 className="text-2xl font-semibold text-[#0F1C2E] mb-8">Estimated landed cost — example</h2>
+        <div className="rounded-2xl border border-slate-200 p-6 max-w-xl">
+          <div className="space-y-2 text-sm">
+            {[["Product cost (USD 620)", "KSh 80,600"], ["Exchange rate", "1 USD = KSh 130 (est.)"], ["International shipping", "KSh 14,200"], ["Estimated duties / taxes", "KSh 12,800"], ["YourPlug procurement fee", "KSh 6,500"]].map(([a, b]) => (
+              <div key={a} className="flex justify-between py-1.5 border-b border-slate-100 text-slate-600"><span>{a}</span><span className="text-[#0F1C2E]">{b}</span></div>
+            ))}
+            <div className="flex justify-between pt-3 font-medium text-[#0F1C2E] text-base"><span>Estimated landed cost</span><span className="text-sky-600">KSh 114,100</span></div>
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">Illustrative example only — Verification Required. A live estimator connected to real exchange-rate and duty data isn't built yet.</p>
+          </div>
         </div>
-      </div>
-    </Section>
+      </Section>
+    </>
   );
 }
 
