@@ -8,10 +8,11 @@ export const meRouter = Router();
 meRouter.use(authenticate);
 
 meRouter.get("/", async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.sub } });
+  const user = await prisma.user.findUnique({ where: { id: req.user!.sub }, include: { organization: true } });
   if (!user) return res.status(404).json({ error: "Account not found." });
   res.json({
     id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role,
+    accountType: user.accountType, organization: user.organization,
     emailVerified: Boolean(user.emailVerifiedAt), phoneVerified: Boolean(user.phoneVerifiedAt),
   });
 });

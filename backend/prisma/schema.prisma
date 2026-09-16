@@ -13,6 +13,11 @@ enum Role {
   ADMIN
 }
 
+enum AccountType {
+  INDIVIDUAL
+  BUSINESS
+}
+
 enum Urgency {
   NORMAL
   HIGH
@@ -56,11 +61,15 @@ model User {
   phone            String    @unique
   passwordHash     String
   role             Role      @default(CUSTOMER)
+  accountType      AccountType @default(INDIVIDUAL)
   emailVerifiedAt  DateTime?
   phoneVerifiedAt  DateTime?
   failedLogins     Int       @default(0)
   lockedUntil      DateTime?
   createdAt        DateTime  @default(now())
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   requestsAsCustomer ProcurementRequest[] @relation("CustomerRequests")
   requestsAsAgent    ProcurementRequest[] @relation("AgentRequests")
@@ -68,6 +77,19 @@ model User {
   auditLogs          AuditLog[]
   verificationCodes  VerificationCode[]
   messages           Message[]
+}
+
+model Organization {
+  id                  String   @id @default(cuid())
+  companyName         String
+  registrationNumber  String?
+  businessType        String?
+  address             String?
+  contactPerson       String?
+  billingEmail        String?
+  createdAt           DateTime @default(now())
+
+  users User[]
 }
 
 model VerificationCode {

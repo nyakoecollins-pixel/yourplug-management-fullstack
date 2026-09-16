@@ -25,6 +25,15 @@ const registerSchema = z.object({
   password: z.string().min(8),
   acceptedTerms: z.literal(true),
   acceptedPrivacy: z.literal(true),
+  accountType: z.enum(["INDIVIDUAL", "BUSINESS"]).default("INDIVIDUAL"),
+  organization: z.object({
+    companyName: z.string().min(2),
+    registrationNumber: z.string().optional(),
+    businessType: z.string().optional(),
+    address: z.string().optional(),
+    contactPerson: z.string().optional(),
+    billingEmail: z.string().email().optional(),
+  }).optional(),
 });
 
 authRouter.post("/register", async (req, res) => {
@@ -32,7 +41,10 @@ authRouter.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Check your details and try again.", details: parsed.error.flatten() });
   }
-  const { name, email, phone, password } = parsed.data;
+  const { name, email, phone, password, accountType, organization } = parsed.data;
+  if (accountType === "BUSINESS" && !organization?.companyName) {
+    return res.status(400).json({ error: "Company name is required for a business account." });
+  }
 
   const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { phone }] } });
   if (existing) {
@@ -40,8 +52,15 @@ authRouter.post("/register", async (req, res) => {
   }
 
   const passwordHash = await hashPassword(password);
+
+  let organizationId: string | undefined;
+  if (accountType === "BUSINESS" && organization) {
+    const org = await prisma.organization.create({ data: organization });
+    organizationId = org.id;
+  }
+
   const user = await prisma.user.create({
-    data: { name, email, phone, passwordHash, role: "CUSTOMER" },
+    data: { name, email, phone, passwordHash, role: "CUSTOMER", accountType, organizationId },
   });
 
   // Real codes, sent via whichever providers are configured (see /README-INTEGRATIONS.md).
@@ -152,7 +171,7 @@ authRouter.post("/login", async (req, res) => {
 
   res.json({
     accessToken,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, accountType: user.accountType },
   });
 });
 

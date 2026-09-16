@@ -598,7 +598,11 @@ function TrackOrderPage() {
 
 function AuthPage({ mode, setNav, onAuth }) {
   const isRegister = mode === "register";
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "", terms: false, privacy: false });
+  const [accountType, setAccountType] = useState("INDIVIDUAL");
+  const [form, setForm] = useState({
+    name: "", email: "", phone: "", password: "", confirm: "", terms: false, privacy: false,
+    companyName: "", registrationNumber: "", businessType: "", address: "", contactPerson: "",
+  });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -612,7 +616,12 @@ function AuthPage({ mode, setNav, onAuth }) {
         if (form.password !== form.confirm) throw new Error("Passwords don't match.");
         await api.register({
           name: form.name, email: form.email, phone: form.phone, password: form.password,
-          acceptedTerms: form.terms, acceptedPrivacy: form.privacy,
+          acceptedTerms: form.terms, acceptedPrivacy: form.privacy, accountType,
+          organization: accountType === "BUSINESS" ? {
+            companyName: form.companyName, registrationNumber: form.registrationNumber || undefined,
+            businessType: form.businessType || undefined, address: form.address || undefined,
+            contactPerson: form.contactPerson || undefined,
+          } : undefined,
         });
         setNotice("Account created. Check the API server logs for your demo verification codes, then log in below.");
         setLoading(false);
@@ -632,11 +641,36 @@ function AuthPage({ mode, setNav, onAuth }) {
     <Section className="max-w-md">
       <h1 className="text-3xl font-semibold text-[#0F1C2E]">{isRegister ? "Create your account" : "Log in"}</h1>
       <p className="mt-2 text-sm text-slate-500">{isRegister ? "Register to submit and track procurement requests." : "Access your dashboard to track requests and approve quotes."}</p>
-      <form className="mt-8 space-y-4" onSubmit={submit}>
-        {isRegister && <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder="Full name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+
+      {isRegister && (
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button type="button" onClick={() => setAccountType("INDIVIDUAL")}
+            className={`rounded-lg border px-4 py-3 text-sm font-medium text-left ${accountType === "INDIVIDUAL" ? "border-[#0F8B75] bg-[#0F8B75]/5 text-[#0F1C2E]" : "border-slate-200 text-slate-500"}`}>
+            Individual
+          </button>
+          <button type="button" onClick={() => setAccountType("BUSINESS")}
+            className={`rounded-lg border px-4 py-3 text-sm font-medium text-left ${accountType === "BUSINESS" ? "border-[#0F8B75] bg-[#0F8B75]/5 text-[#0F1C2E]" : "border-slate-200 text-slate-500"}`}>
+            Business
+          </button>
+        </div>
+      )}
+
+      <form className="mt-6 space-y-4" onSubmit={submit}>
+        {isRegister && <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder={accountType === "BUSINESS" ? "Contact person full name" : "Full name"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
         <input required type={isRegister ? "email" : "text"} value={form.email} onChange={e => set("email", e.target.value)}
           placeholder={isRegister ? "Email address" : "Email address (seeded demo: james.mwangi@example.com)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
         {isRegister && <input required value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="Phone number" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+
+        {isRegister && accountType === "BUSINESS" && (
+          <div className="rounded-lg border border-slate-200 p-4 space-y-3 bg-slate-50">
+            <p className="text-xs font-medium text-slate-500">Business details</p>
+            <input required value={form.companyName} onChange={e => set("companyName", e.target.value)} placeholder="Company / business name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input value={form.registrationNumber} onChange={e => set("registrationNumber", e.target.value)} placeholder="Company registration number (optional)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input value={form.businessType} onChange={e => set("businessType", e.target.value)} placeholder="Business type (e.g. Retail, SME, Corporate)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input value={form.address} onChange={e => set("address", e.target.value)} placeholder="Business address" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          </div>
+        )}
+
         <input required type="password" value={form.password} onChange={e => set("password", e.target.value)}
           placeholder={isRegister ? "Password (min 8 characters)" : "Password (demo: Password123!)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
         {isRegister && <input required type="password" value={form.confirm} onChange={e => set("confirm", e.target.value)} placeholder="Confirm password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
