@@ -11,6 +11,7 @@ import {
 } from "../utils/jwt.js";
 import { audit } from "../utils/audit.js";
 import { notify } from "../utils/notify.js";
+import { LEGAL_DOCUMENT_VERSIONS } from "../config/legal.js";
 
 export const authRouter = Router();
 
@@ -61,6 +62,16 @@ authRouter.post("/register", async (req, res) => {
 
   const user = await prisma.user.create({
     data: { name, email, phone, passwordHash, role: "CUSTOMER", accountType, organizationId },
+  });
+
+  // Real, queryable consent records — not just a checked checkbox that vanishes
+  // after submission. This is what lets YourPlug prove what was agreed to, when.
+  const clientIp = req.ip;
+  await prisma.legalAcceptance.createMany({
+    data: [
+      { userId: user.id, documentType: "terms", documentVersion: LEGAL_DOCUMENT_VERSIONS.terms, ipAddress: clientIp },
+      { userId: user.id, documentType: "privacy", documentVersion: LEGAL_DOCUMENT_VERSIONS.privacy, ipAddress: clientIp },
+    ],
   });
 
   // Real codes, sent via whichever providers are configured (see /README-INTEGRATIONS.md).

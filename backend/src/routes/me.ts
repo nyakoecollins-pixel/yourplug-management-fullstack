@@ -58,3 +58,11 @@ meRouter.patch("/", async (req, res) => {
     emailVerified: Boolean(updated.emailVerifiedAt), phoneVerified: Boolean(updated.phoneVerifiedAt),
   });
 });
+
+meRouter.get("/legal-acceptances", async (req, res) => {
+  const acceptances = await prisma.legalAcceptance.findMany({
+    where: { userId: req.user!.sub },
+    orderBy: { acceptedAt: "desc" },
+  });
+  res.json(acceptances);
+});

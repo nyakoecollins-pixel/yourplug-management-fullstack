@@ -78,6 +78,7 @@ model User {
   verificationCodes  VerificationCode[]
   messages           Message[]
   internationalEstimates InternationalEstimate[]
+  legalAcceptances       LegalAcceptance[]
 }
 
 model Organization {
@@ -242,6 +243,16 @@ model InternationalEstimate {
   landedCostKes     Float
   verificationNote  String
   createdAt         DateTime @default(now())
+}
+
+model LegalAcceptance {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  documentType    String   // "terms" | "privacy" | "procurement_agreement"
+  documentVersion String
+  ipAddress       String?
+  acceptedAt      DateTime @default(now())
 }
 
 model AuditLog {

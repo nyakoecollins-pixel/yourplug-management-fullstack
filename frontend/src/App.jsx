@@ -1297,6 +1297,7 @@ function ProfilePanel({ session }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [legal, setLegal] = useState([]);
 
   React.useEffect(() => {
     if (!session.token) return;
@@ -1304,6 +1305,7 @@ function ProfilePanel({ session }) {
       setProfile(p);
       setForm({ name: p.name, email: p.email, phone: p.phone });
     }).catch(err => setError(err.message));
+    api.getLegalAcceptances(session.token).then(setLegal).catch(() => {});
   }, [session.token]);
 
   const save = async () => {
@@ -1363,6 +1365,19 @@ function ProfilePanel({ session }) {
           </>
         )}
       </div>
+      {legal.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm">
+          <p className="font-medium text-[#0F1C2E] mb-3">Legal acceptance record</p>
+          <div className="space-y-2">
+            {legal.map(l => (
+              <div key={l.id} className="flex justify-between text-xs text-slate-500">
+                <span className="capitalize">{l.documentType.replace(/_/g, " ")} v{l.documentVersion}</span>
+                <span>{new Date(l.acceptedAt).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
