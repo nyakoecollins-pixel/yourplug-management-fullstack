@@ -78,6 +78,16 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   getLegalAcceptances: (token) => request("/me/legal-acceptances", { headers: { Authorization: `Bearer ${token}` } }),
+  createPurchaseOrder: (token, requestId, payload) =>
+    request(`/requests/${requestId}/purchase-order`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  getPurchaseOrder: (token, requestId) =>
+    request(`/requests/${requestId}/purchase-order`, { headers: { Authorization: `Bearer ${token}` } }),
+  bookDelivery: (token, requestId, payload) =>
+    request(`/requests/${requestId}/delivery`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  updateDeliveryStatus: (token, requestId, status) =>
+    request(`/requests/${requestId}/delivery/status`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) }),
+  getDelivery: (token, requestId) =>
+    request(`/requests/${requestId}/delivery`, { headers: { Authorization: `Bearer ${token}` } }),
   estimateLandedCost: (payload) =>
     request("/international/estimate", { method: "POST", body: JSON.stringify(payload) }),
   saveLandedCostEstimate: (token, payload) =>

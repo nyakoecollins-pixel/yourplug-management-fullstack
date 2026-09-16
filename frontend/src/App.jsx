@@ -1382,6 +1382,56 @@ function ProfilePanel({ session }) {
   );
 }
 
+function DeliveryTrackingPanel({ session, requests }) {
+  const [deliveries, setDeliveries] = useState({});
+
+  React.useEffect(() => {
+    if (!session.token) return;
+    const relevant = requests.filter(r => ["Dispatched", "In Transit", "Delivered", "Completed"].includes(r.status));
+    relevant.forEach(r => {
+      if (!r.dbId) return;
+      api.getDelivery(session.token, r.dbId).then(d => setDeliveries(prev => ({ ...prev, [r.dbId]: d }))).catch(() => {});
+    });
+  }, [session.token, requests]);
+
+  const relevant = requests.filter(r => ["Dispatched", "In Transit", "Delivered", "Completed"].includes(r.status));
+
+  if (relevant.length === 0) {
+    return <div className="p-8"><p className="text-sm text-slate-500">No deliveries in progress yet.</p></div>;
+  }
+
+  return (
+    <div className="p-8 space-y-4">
+      {relevant.map(r => {
+        const d = session.token ? deliveries[r.dbId] : null;
+        return (
+          <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between mb-4"><p className="font-medium text-[#0F1C2E]">{r.item}</p><StatusBadge status={r.status} /></div>
+            {session.token ? (
+              d ? (
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between"><span className="text-slate-500">Provider</span><span>{d.provider}</span></div>
+                  {d.trackingNumber && <div className="flex justify-between"><span className="text-slate-500">Tracking number</span><span>{d.trackingNumber}</span></div>}
+                  {d.destination && <div className="flex justify-between"><span className="text-slate-500">Destination</span><span>{d.destination}</span></div>}
+                </div>
+              ) : <p className="text-xs text-slate-400">Delivery details not yet booked.</p>
+            ) : (
+              <div className="flex flex-wrap gap-4">
+                {r.steps.map(([label, s], i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    {s === true ? <CheckCircle2 size={16} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={16} className="text-amber-500 fill-amber-500" /> : <Circle size={16} className="text-slate-300" />}
+                    <span className={`text-xs ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function CustomerDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
@@ -1490,23 +1540,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
             </div>
           )}
           {tab === "payments" && <PaymentsPanel session={session} invoices={liveInvoices} />}
-          {tab === "tracking" && (
-            <div className="p-8 space-y-4">
-              {myRequests.filter(r => ["In Transit", "Dispatched", "Delivered"].includes(r.status)).map(r => (
-                <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-6">
-                  <div className="flex items-center justify-between mb-4"><p className="font-medium text-[#0F1C2E]">{r.item}</p><StatusBadge status={r.status} /></div>
-                  <div className="flex flex-wrap gap-4">
-                    {r.steps.map(([label, s], i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        {s === true ? <CheckCircle2 size={16} className="text-[#0F8B75]" /> : s === "active" ? <Circle size={16} className="text-amber-500 fill-amber-500" /> : <Circle size={16} className="text-slate-300" />}
-                        <span className={`text-xs ${s ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {tab === "tracking" && <DeliveryTrackingPanel session={session} requests={myRequests} />}
           {tab === "messages" && <MessagesPanel session={session} requests={myRequests} />}
           {tab === "documents" && (
             <div className="p-8">
@@ -1646,12 +1680,20 @@ function AdminWorkspace({ req, setTab, session }) {
   const [quoteForm, setQuoteForm] = useState({ supplierId: "", price: "", deliveryEstimate: "", warrantyTerms: "", recommended: false });
   const [quoteState, setQuoteState] = useState("idle"); // idle | saving | error
   const [quoteError, setQuoteError] = useState("");
+  const [poState, setPoState] = useState("idle");
+  const [poForm, setPoForm] = useState({ itemDescription: "", quantity: 1, unitPrice: "", expectedDeliveryDate: "" });
+  const [poError, setPoError] = useState("");
+  const [deliveryState, setDeliveryState] = useState("idle");
+  const [deliveryForm, setDeliveryForm] = useState({ provider: "Manual", trackingNumber: "", courierName: "", destination: "" });
+  const [delivery, setDelivery] = useState(null);
+  const [deliveryError, setDeliveryError] = useState("");
   const liveMode = Boolean(session?.token) && Boolean(req?.dbId);
 
   React.useEffect(() => {
     if (!liveMode) return;
     api.getMessages(session.token, req.dbId).then(setMessages).catch(() => {});
     api.getSuppliers(session.token).then(setSuppliers).catch(() => {});
+    api.getDelivery(session.token, req.dbId).then(setDelivery).catch(() => {});
   }, [liveMode, req?.dbId]);
 
   React.useEffect(() => { setLocalQuotes(req?.quotes || []); }, [req?.dbId]);
@@ -1710,7 +1752,44 @@ function AdminWorkspace({ req, setTab, session }) {
     if (visibility === "internal") setNote(""); else setReply("");
   };
 
-  const actions = ["Find Suppliers", "Compare Suppliers", "Negotiate", "Request Customer Approval", "Create Purchase Order", "Mark Purchased", "Book Delivery", "Send Update"];
+  const createPO = async () => {
+    if (!poForm.itemDescription || !poForm.unitPrice) return;
+    setPoState("saving"); setPoError("");
+    try {
+      await api.createPurchaseOrder(session.token, req.dbId, {
+        itemDescription: poForm.itemDescription, quantity: Number(poForm.quantity) || 1,
+        unitPrice: Number(poForm.unitPrice), expectedDeliveryDate: poForm.expectedDeliveryDate || undefined,
+      });
+      setPoState("done");
+    } catch (err) {
+      setPoState("error");
+      setPoError(err.message || "Couldn't create the purchase order.");
+    }
+  };
+
+  const bookDelivery = async () => {
+    if (!deliveryForm.provider) return;
+    setDeliveryState("saving"); setDeliveryError("");
+    try {
+      const d = await api.bookDelivery(session.token, req.dbId, deliveryForm);
+      setDelivery(d);
+      setDeliveryState("done");
+    } catch (err) {
+      setDeliveryState("error");
+      setDeliveryError(err.message || "Couldn't book delivery.");
+    }
+  };
+
+  const advanceDelivery = async (status) => {
+    try {
+      const d = await api.updateDeliveryStatus(session.token, req.dbId, status);
+      setDelivery(d);
+    } catch (err) {
+      setDeliveryError(err.message);
+    }
+  };
+
+  const actions = ["Find Suppliers", "Compare Suppliers", "Negotiate", "Request Customer Approval", "Mark Purchased", "Send Update"];
 
   return (
     <div className="p-8 max-w-5xl space-y-8">
@@ -1794,6 +1873,57 @@ function AdminWorkspace({ req, setTab, session }) {
             </table>
           </div>
           <p className="text-xs text-slate-400 mt-2">Score shown reflects the supplier's own reliability, delivery and warranty track record. Full price/spec-match weighting applies once multiple quotes are compared.</p>
+        </div>
+      )}
+
+      {liveMode && (
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div>
+            <p className="font-medium text-[#0F1C2E] mb-3">Purchase order</p>
+            {poState === "done" ? (
+              <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">Purchase order created.</p>
+            ) : (
+              <div className="rounded-lg border border-slate-200 p-4 space-y-2">
+                <input value={poForm.itemDescription} onChange={e => setPoForm(f => ({ ...f, itemDescription: e.target.value }))} placeholder="Item description" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={poForm.quantity} onChange={e => setPoForm(f => ({ ...f, quantity: e.target.value }))} type="number" placeholder="Qty" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  <input value={poForm.unitPrice} onChange={e => setPoForm(f => ({ ...f, unitPrice: e.target.value }))} type="number" placeholder="Unit price (KSh)" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </div>
+                <input value={poForm.expectedDeliveryDate} onChange={e => setPoForm(f => ({ ...f, expectedDeliveryDate: e.target.value }))} type="date" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                {poError && <p className="text-xs text-rose-600">{poError}</p>}
+                <SecondaryButton className="w-full !py-2" disabled={poState === "saving"} onClick={createPO}>{poState === "saving" ? "Creating…" : "Create Purchase Order"}</SecondaryButton>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-[#0F1C2E] mb-3">Delivery</p>
+            {delivery ? (
+              <div className="rounded-lg border border-slate-200 p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">Provider</span><span className="font-medium text-[#0F1C2E]">{delivery.provider}</span></div>
+                {delivery.trackingNumber && <div className="flex justify-between"><span className="text-slate-500">Tracking</span><span>{delivery.trackingNumber}</span></div>}
+                <div className="flex justify-between"><span className="text-slate-500">Status</span><StatusBadge status={delivery.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} /></div>
+                {deliveryError && <p className="text-xs text-rose-600">{deliveryError}</p>}
+                {delivery.status !== "delivered" && (
+                  <div className="flex gap-2 pt-2">
+                    {delivery.status === "dispatched" && <SecondaryButton className="flex-1 !py-2" onClick={() => advanceDelivery("in_transit")}>Mark In Transit</SecondaryButton>}
+                    {delivery.status === "in_transit" && <SecondaryButton className="flex-1 !py-2" onClick={() => advanceDelivery("delivered")}>Mark Delivered</SecondaryButton>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 p-4 space-y-2">
+                <select value={deliveryForm.provider} onChange={e => setDeliveryForm(f => ({ ...f, provider: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  {["Manual", "Uber", "G4S", "Fargo Courier", "DHL", "FedEx"].map(p => <option key={p}>{p}</option>)}
+                </select>
+                <input value={deliveryForm.trackingNumber} onChange={e => setDeliveryForm(f => ({ ...f, trackingNumber: e.target.value }))} placeholder="Tracking number (optional)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input value={deliveryForm.courierName} onChange={e => setDeliveryForm(f => ({ ...f, courierName: e.target.value }))} placeholder="Courier name (optional)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input value={deliveryForm.destination} onChange={e => setDeliveryForm(f => ({ ...f, destination: e.target.value }))} placeholder="Delivery destination" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                {deliveryError && <p className="text-xs text-rose-600">{deliveryError}</p>}
+                <SecondaryButton className="w-full !py-2" disabled={deliveryState === "saving"} onClick={bookDelivery}>{deliveryState === "saving" ? "Booking…" : "Book Delivery"}</SecondaryButton>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
