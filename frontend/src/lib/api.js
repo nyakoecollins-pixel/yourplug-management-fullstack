@@ -77,4 +77,12 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     }),
+  estimateLandedCost: (payload) =>
+    request("/international/estimate", { method: "POST", body: JSON.stringify(payload) }),
+  saveLandedCostEstimate: (token, payload) =>
+    request("/international/estimate/save", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }),
 };

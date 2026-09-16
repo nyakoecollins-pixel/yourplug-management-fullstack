@@ -10,6 +10,7 @@ import { adminRouter } from "./routes/admin.js";
 import { invoicesRouter } from "./routes/invoices.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { meRouter } from "./routes/me.js";
+import { internationalRouter } from "./routes/international.js";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/invoices", invoicesRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/me", meRouter);
+app.use("/api/international", internationalRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

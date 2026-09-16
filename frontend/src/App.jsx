@@ -503,7 +503,107 @@ function ServicesPage({ setNav }) {
   );
 }
 
-function InternationalPage({ setNav }) {
+function CostEstimatorForm({ session }) {
+  const [form, setForm] = useState({ productName: "", originCountry: "", productCost: "", currency: "USD", quantity: 1, freight: "", insurance: "", dutyRatePercent: "", clearance: "", otherCosts: "" });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const buildPayload = () => ({
+    productName: form.productName || "Item",
+    originCountry: form.originCountry || "Unknown",
+    productCost: Number(form.productCost) || 0,
+    currency: form.currency,
+    quantity: Number(form.quantity) || 1,
+    freight: Number(form.freight) || 0,
+    insurance: Number(form.insurance) || 0,
+    dutyRatePercent: form.dutyRatePercent ? Number(form.dutyRatePercent) : undefined,
+    clearance: Number(form.clearance) || 0,
+    otherCosts: Number(form.otherCosts) || 0,
+  });
+
+  const calculate = async () => {
+    setLoading(true); setError(""); setResult(null); setSaved(false);
+    try {
+      const data = await api.estimateLandedCost(buildPayload());
+      setResult(data);
+    } catch (err) {
+      setError(err.message || "Couldn't calculate an estimate.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveEstimate = async () => {
+    if (!session?.token) return;
+    try {
+      await api.saveLandedCostEstimate(session.token, buildPayload());
+      setSaved(true);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-10">
+      <div className="rounded-2xl border border-slate-200 p-6 space-y-3">
+        <p className="text-sm font-medium text-[#0F1C2E]">Enter product details</p>
+        <input value={form.productName} onChange={e => set("productName", e.target.value)} placeholder="Product name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <input value={form.originCountry} onChange={e => set("originCountry", e.target.value)} placeholder="Country of origin (e.g. China)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <div className="grid grid-cols-2 gap-3">
+          <input value={form.productCost} onChange={e => set("productCost", e.target.value)} type="number" placeholder="Product price" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <select value={form.currency} onChange={e => set("currency", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+            {["USD", "GBP", "EUR", "CNY", "AED", "INR", "ZAR"].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <input value={form.quantity} onChange={e => set("quantity", e.target.value)} type="number" placeholder="Quantity" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <div className="grid grid-cols-2 gap-3">
+          <input value={form.freight} onChange={e => set("freight", e.target.value)} type="number" placeholder="Freight (KSh, if known)" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <input value={form.insurance} onChange={e => set("insurance", e.target.value)} type="number" placeholder="Insurance (KSh)" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        </div>
+        <input value={form.dutyRatePercent} onChange={e => set("dutyRatePercent", e.target.value)} type="number" placeholder="Import duty rate % (from KRA tariff, if known)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        <div className="grid grid-cols-2 gap-3">
+          <input value={form.clearance} onChange={e => set("clearance", e.target.value)} type="number" placeholder="Clearance (KSh)" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <input value={form.otherCosts} onChange={e => set("otherCosts", e.target.value)} type="number" placeholder="Other costs (KSh)" className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+        </div>
+        {error && <p className="text-xs text-rose-600">{error}</p>}
+        <PrimaryButton className="w-full" disabled={loading} onClick={calculate}>{loading ? "Calculating…" : "Calculate landed cost"}</PrimaryButton>
+      </div>
+
+      <div className="rounded-2xl bg-[#0F1C2E] text-white p-6">
+        {!result && <p className="text-sm text-slate-300">Fill in the form and calculate to see a live breakdown here, using a real current exchange rate.</p>}
+        {result && (
+          <>
+            <p className="text-xs text-slate-400 mb-1">Your estimated landed cost</p>
+            <p className="text-4xl font-semibold text-white mb-6">KSh {result.landedCostKes.toLocaleString()}</p>
+            <div className="space-y-2 text-sm border-t border-white/10 pt-4">
+              {[["Product cost", result.breakdown.productCostKes], ["Freight", result.breakdown.freightKes], ["Insurance", result.breakdown.insuranceKes],
+                ["Import duty", result.breakdown.dutyKes], ["VAT (16%)", result.breakdown.vatKes], ["Clearance", result.breakdown.clearanceKes], ["Other costs", result.breakdown.otherCostsKes]].map(([label, val]) => (
+                <div key={label} className="flex justify-between text-slate-300"><span>{label}</span><span className="text-white">{val === null ? "Not provided" : `KSh ${val.toLocaleString()}`}</span></div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/10 text-xs text-slate-400 space-y-1">
+              <p>Exchange rate used: 1 {form.currency} = KSh {result.fx.rate.toFixed(2)} (source: {result.fx.source})</p>
+              <p>Rate as of: {new Date(result.fx.timestamp).toLocaleString()}</p>
+            </div>
+            <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-200">{result.verification}</div>
+            <div className="mt-5 flex gap-3">
+              {session?.token ? (
+                <SecondaryButton className="flex-1 !py-2 !bg-transparent !text-white !border-white/30" onClick={saveEstimate}>{saved ? "Saved ✓" : "Save Estimate"}</SecondaryButton>
+              ) : (
+                <p className="text-xs text-slate-400">Log in to save this estimate.</p>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InternationalPage({ setNav, session }) {
   return (
     <>
       <div className="bg-gradient-to-br from-[#0c2d4f] via-[#0c2d4f] to-[#0a1f38] text-white">
@@ -519,16 +619,9 @@ function InternationalPage({ setNav }) {
       </div>
       <Section>
         <Eyebrow color="text-sky-600">International Cost Estimator</Eyebrow>
-        <h2 className="text-2xl font-semibold text-[#0F1C2E] mb-8">Estimated landed cost — example</h2>
-        <div className="rounded-2xl border border-slate-200 p-6 max-w-xl">
-          <div className="space-y-2 text-sm">
-            {[["Product cost (USD 620)", "KSh 80,600"], ["Exchange rate", "1 USD = KSh 130 (est.)"], ["International shipping", "KSh 14,200"], ["Estimated duties / taxes", "KSh 12,800"], ["YourPlug procurement fee", "KSh 6,500"]].map(([a, b]) => (
-              <div key={a} className="flex justify-between py-1.5 border-b border-slate-100 text-slate-600"><span>{a}</span><span className="text-[#0F1C2E]">{b}</span></div>
-            ))}
-            <div className="flex justify-between pt-3 font-medium text-[#0F1C2E] text-base"><span>Estimated landed cost</span><span className="text-sky-600">KSh 114,100</span></div>
-            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">Illustrative example only — Verification Required. A live estimator connected to real exchange-rate and duty data isn't built yet.</p>
-          </div>
-        </div>
+        <h2 className="text-2xl font-semibold text-[#0F1C2E] mb-2">Estimate your landed cost</h2>
+        <p className="text-sm text-slate-500 mb-8 max-w-2xl">Exchange rates are fetched live. Import duty is never guessed — provide your product's rate from KRA's tariff schedule, or leave it blank to see everything except duty.</p>
+        <CostEstimatorForm session={session} />
       </Section>
     </>
   );
@@ -1940,7 +2033,7 @@ export default function App() {
 
   const pages = {
     home: <HomePage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
-    international: <InternationalPage setNav={setNav} />, contact: <ContactPage />, track: <TrackOrderPage />,
+    international: <InternationalPage setNav={setNav} session={session} />, contact: <ContactPage />, track: <TrackOrderPage />,
     login: <AuthPage mode="login" setNav={setNav} onAuth={handleAuth} />, register: <AuthPage mode="register" setNav={setNav} onAuth={handleAuth} />,
   };
 
