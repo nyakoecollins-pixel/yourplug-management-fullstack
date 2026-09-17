@@ -88,6 +88,23 @@ export const api = {
     request(`/requests/${requestId}/delivery/status`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) }),
   getDelivery: (token, requestId) =>
     request(`/requests/${requestId}/delivery`, { headers: { Authorization: `Bearer ${token}` } }),
+  uploadDocument: async (token, requestId, file, visibility = "customer") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("visibility", visibility);
+    const res = await fetch(`${API_URL}/requests/${requestId}/documents`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }, // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Upload failed.");
+    return data;
+  },
+  getDocuments: (token, requestId) =>
+    request(`/requests/${requestId}/documents`, { headers: { Authorization: `Bearer ${token}` } }),
+  getDocumentDownloadUrl: (token, documentId) =>
+    request(`/documents/${documentId}/download`, { headers: { Authorization: `Bearer ${token}` } }),
   estimateLandedCost: (payload) =>
     request("/international/estimate", { method: "POST", body: JSON.stringify(payload) }),
   saveLandedCostEstimate: (token, payload) =>

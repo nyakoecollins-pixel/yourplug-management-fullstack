@@ -79,6 +79,7 @@ model User {
   messages           Message[]
   internationalEstimates InternationalEstimate[]
   legalAcceptances       LegalAcceptance[]
+  uploadedDocuments      Document[]
 }
 
 model Organization {
@@ -158,6 +159,7 @@ model ProcurementRequest {
   messages  Message[]
   purchaseOrders PurchaseOrder[]
   delivery       Delivery?
+  documents      Document[]
 }
 
 model SupplierQuote {
@@ -291,6 +293,20 @@ model Delivery {
   deliveredAt        DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  requestId    String
+  request      ProcurementRequest @relation(fields: [requestId], references: [id])
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String   // key/path within the S3-compatible bucket
+  visibility   String   @default("customer") // "customer" | "internal"
+  createdAt    DateTime @default(now())
 }
 
 model AuditLog {

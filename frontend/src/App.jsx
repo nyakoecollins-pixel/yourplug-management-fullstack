@@ -973,6 +973,8 @@ function NewRequestWizard({ session, onSubmitted }) {
   const [aiRun, setAiRun] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [files, setFiles] = useState([]);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [createdRef, setCreatedRef] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -997,6 +999,19 @@ function NewRequestWizard({ session, onSubmitted }) {
       };
       const created = await api.createRequest(session.token, payload);
       setCreatedRef(created.ref);
+
+      if (files.length > 0) {
+        setUploadStatus(`Uploading ${files.length} file${files.length > 1 ? "s" : ""}…`);
+        for (const file of files) {
+          try {
+            await api.uploadDocument(session.token, created.id, file);
+          } catch (uploadErr) {
+            console.error("File upload failed:", uploadErr.message);
+          }
+        }
+        setUploadStatus("");
+      }
+
       setStep(5);
       onSubmitted?.();
     } catch (err) {
@@ -1073,11 +1088,24 @@ function NewRequestWizard({ session, onSubmitted }) {
       {step === 2 && (
         <div className="space-y-5">
           <h2 className="text-xl font-medium text-[#0F1C2E]">Add supporting information</h2>
-          <p className="text-sm text-slate-500">Photos, screenshots, product links, catalogues or existing quotations — anything that helps us find the right match.</p>
-          <div className="rounded-xl border-2 border-dashed border-slate-300 p-10 text-center text-slate-400">
+          <p className="text-sm text-slate-500">Photos, screenshots, product catalogues or existing quotations — anything that helps us find the right match. Images, PDFs, and Word/Excel files, up to 15MB each.</p>
+          <label className="block rounded-xl border-2 border-dashed border-slate-300 p-10 text-center text-slate-400 cursor-pointer hover:border-[#0F8B75] hover:text-[#0F8B75] transition-colors">
             <Upload className="mx-auto mb-2" size={22} />
-            <p className="text-sm">Drag and drop files, or click to browse</p>
-          </div>
+            <p className="text-sm">Click to choose files, or drag and drop</p>
+            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden"
+              onChange={e => setFiles(f => [...f, ...Array.from(e.target.files || [])])} />
+          </label>
+          {files.length > 0 && (
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                  <span className="text-slate-700 truncate">{f.name} <span className="text-slate-400">({(f.size / 1024).toFixed(0)} KB)</span></span>
+                  <button onClick={() => setFiles(fs => fs.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-rose-600"><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          {!session.token && files.length > 0 && <p className="text-xs text-amber-700">Demo mode — files are shown here but won't actually upload anywhere.</p>}
           <div className="flex justify-between"><SecondaryButton onClick={() => setStep(1)}>Back</SecondaryButton><PrimaryButton onClick={() => setStep(3)}>Continue</PrimaryButton></div>
         </div>
       )}
@@ -1110,7 +1138,7 @@ function NewRequestWizard({ session, onSubmitted }) {
           {error && <p className="text-xs text-rose-600">{error}</p>}
           {!session.token && <p className="text-xs text-amber-700">Demo mode — this will show a success screen but won't actually be saved.</p>}
           <div className="flex justify-between"><SecondaryButton onClick={() => setStep(3)}>Back</SecondaryButton>
-            <PrimaryButton onClick={submit} disabled={submitting} icon={CheckCircle2}>{submitting ? "Submitting…" : "Submit request"}</PrimaryButton>
+            <PrimaryButton onClick={submit} disabled={submitting} icon={CheckCircle2}>{uploadStatus || (submitting ? "Submitting…" : "Submit request")}</PrimaryButton>
           </div>
         </div>
       )}
@@ -1432,6 +1460,64 @@ function DeliveryTrackingPanel({ session, requests }) {
   );
 }
 
+function DocumentsPanel({ session, requests }) {
+  const [selectedId, setSelectedId] = useState(requests?.[0]?.dbId || null);
+  const [docs, setDocs] = useState([]);
+  const [error, setError] = useState("");
+  const selected = (requests || []).find(r => r.dbId === selectedId) || requests?.[0];
+
+  React.useEffect(() => {
+    if (!session.token || !selected?.dbId) return;
+    api.getDocuments(session.token, selected.dbId).then(setDocs).catch(err => setError(err.message));
+  }, [session.token, selected?.dbId]);
+
+  const download = async (docId) => {
+    try {
+      const { url } = await api.getDocumentDownloadUrl(session.token, docId);
+      window.open(url, "_blank");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (!session.token) {
+    return (
+      <div className="p-8">
+        <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+          {["Purchase order — YPM-202609-00127.pdf", "Supplier invoice — ABC Electronics.pdf", "Proof of delivery — YPM-202608-00098.pdf"].map(d => (
+            <div key={d} className="flex items-center justify-between px-5 py-3.5 text-sm"><span className="flex items-center gap-2 text-slate-700"><FileText size={15} className="text-slate-400" /> {d}</span><button className="text-[#0F8B75] font-medium">Download</button></div>
+          ))}
+        </div>
+        <p className="text-xs text-slate-400 mt-3">Demo mode — log in with a real account to see documents attached to your actual requests.</p>
+      </div>
+    );
+  }
+
+  if (!requests || requests.length === 0) {
+    return <div className="p-8"><p className="text-sm text-slate-500">No requests yet — documents appear here once you have one.</p></div>;
+  }
+
+  return (
+    <div className="p-8">
+      {requests.length > 1 && (
+        <select value={selectedId || ""} onChange={e => setSelectedId(e.target.value)} className="w-full mb-4 rounded-lg border border-slate-300 px-3 py-2.5 text-sm max-w-md">
+          {requests.map(r => <option key={r.dbId} value={r.dbId}>{r.id} — {r.item}</option>)}
+        </select>
+      )}
+      {error && <p className="text-xs text-rose-600 mb-3">{error}</p>}
+      <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+        {docs.length === 0 && <p className="text-sm text-slate-400 p-5">No documents on this request yet.</p>}
+        {docs.map(d => (
+          <div key={d.id} className="flex items-center justify-between px-5 py-3.5 text-sm">
+            <span className="flex items-center gap-2 text-slate-700"><FileText size={15} className="text-slate-400" /> {d.fileName} <span className="text-xs text-slate-400">({(d.sizeBytes / 1024).toFixed(0)} KB · {d.uploadedBy})</span></span>
+            <button onClick={() => download(d.id)} className="text-[#0F8B75] font-medium">Download</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CustomerDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
@@ -1542,15 +1628,7 @@ function CustomerDashboard({ setNav, setSession, session }) {
           {tab === "payments" && <PaymentsPanel session={session} invoices={liveInvoices} />}
           {tab === "tracking" && <DeliveryTrackingPanel session={session} requests={myRequests} />}
           {tab === "messages" && <MessagesPanel session={session} requests={myRequests} />}
-          {tab === "documents" && (
-            <div className="p-8">
-              <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
-                {["Purchase order — YPM-202609-00127.pdf", "Supplier invoice — ABC Electronics.pdf", "Proof of delivery — YPM-202608-00098.pdf"].map(d => (
-                  <div key={d} className="flex items-center justify-between px-5 py-3.5 text-sm"><span className="flex items-center gap-2 text-slate-700"><FileText size={15} className="text-slate-400" /> {d}</span><button className="text-[#0F8B75] font-medium">Download</button></div>
-                ))}
-              </div>
-            </div>
-          )}
+          {tab === "documents" && <DocumentsPanel session={session} requests={myRequests} />}
           {tab === "profile" && <ProfilePanel session={session} />}
         </div>
       </div>

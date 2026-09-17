@@ -12,6 +12,7 @@ import { paymentsRouter } from "./routes/payments.js";
 import { meRouter } from "./routes/me.js";
 import { internationalRouter } from "./routes/international.js";
 import { fulfillmentRouter } from "./routes/fulfillment.js";
+import { documentsRouter } from "./routes/documents.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/me", meRouter);
 app.use("/api/international", internationalRouter);
 app.use("/api", fulfillmentRouter);
+app.use("/api", documentsRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
