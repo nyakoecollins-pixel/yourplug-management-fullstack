@@ -970,13 +970,40 @@ function RequestDetail({ req, setTab }) {
 function NewRequestWizard({ session, onSubmitted }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" });
-  const [aiRun, setAiRun] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [files, setFiles] = useState([]);
   const [uploadStatus, setUploadStatus] = useState("");
   const [createdRef, setCreatedRef] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const runAiExtraction = async () => {
+    if (!session.token) {
+      setAiError("Log in with a real account to use the AI assistant.");
+      return;
+    }
+    setAiLoading(true); setAiError(""); setAiResult(null);
+    try {
+      const result = await api.extractSpecification(session.token, form.desc);
+      setAiResult(result);
+    } catch (err) {
+      setAiError(err.message || "Couldn't reach the AI assistant.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiResult = () => {
+    if (!aiResult) return;
+    setForm(f => ({
+      ...f,
+      item: aiResult.item || f.item,
+      qty: aiResult.quantity || f.qty,
+    }));
+  };
 
   const submit = async () => {
     if (!session.token) {
@@ -1028,7 +1055,7 @@ function NewRequestWizard({ session, onSubmitted }) {
         <h2 className="text-2xl font-semibold text-[#0F1C2E] mt-4">Request submitted</h2>
         <p className="text-slate-600 mt-2">Reference <span className="font-medium text-[#0F1C2E]">{createdRef}</span>. An agent will review it and begin supplier research shortly. You'll be notified at each step.</p>
         {!session.token && <p className="text-xs text-amber-700 mt-3">Demo mode — this wasn't actually saved. Log in with a real account to submit for real.</p>}
-        <SecondaryButton className="mt-6" onClick={() => { setStep(1); setForm({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" }); setAiRun(false); setCreatedRef(""); }}>Submit another request</SecondaryButton>
+        <SecondaryButton className="mt-6" onClick={() => { setStep(1); setForm({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" }); setAiResult(null); setCreatedRef(""); }}>Submit another request</SecondaryButton>
       </div>
     );
   }
@@ -1049,20 +1076,26 @@ function NewRequestWizard({ session, onSubmitted }) {
           <h2 className="text-xl font-medium text-[#0F1C2E]">What do you need?</h2>
           <textarea rows={3} value={form.desc} onChange={e => set("desc", e.target.value)} placeholder="Describe it naturally — e.g. 'I need a commercial display fridge for my shop, around 300–500L'"
             className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
-          <PrimaryButton className="!inline-flex" onClick={() => setAiRun(true)} icon={Sparkles}>Let AI structure this</PrimaryButton>
+          <PrimaryButton className="!inline-flex" onClick={runAiExtraction} icon={Sparkles} disabled={aiLoading || !form.desc.trim()}>{aiLoading ? "Analyzing…" : "Let AI structure this"}</PrimaryButton>
+          {aiError && <p className="text-xs text-rose-600">{aiError}</p>}
 
-          {aiRun && (
+          {aiResult && (
             <div className="rounded-xl border border-sky-200 bg-sky-50 p-5 space-y-2 text-sm">
               <p className="font-medium text-[#0F1C2E] flex items-center gap-2"><Sparkles size={14} className="text-sky-600" /> AI-assisted specification — please review before submitting</p>
               <div className="grid sm:grid-cols-2 gap-2 mt-2">
-                <div><span className="text-slate-500">Item</span><p className="font-medium text-[#0F1C2E]">Commercial Display Refrigerator <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded px-1">from your description</span></p></div>
-                <div><span className="text-slate-500">Estimated capacity</span><p className="font-medium text-[#0F1C2E]">300–500L <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded px-1">from your description</span></p></div>
-                <div><span className="text-slate-500">Purpose</span><p className="font-medium text-[#0F1C2E]">Retail shop <span className="text-[10px] text-sky-700 bg-sky-100 rounded px-1">AI-inferred</span></p></div>
-                <div><span className="text-slate-500">Condition</span><p className="font-medium text-[#0F1C2E]">New <span className="text-[10px] text-sky-700 bg-sky-100 rounded px-1">AI-inferred</span></p></div>
+                {aiResult.item && <div><span className="text-slate-500">Item</span><p className="font-medium text-[#0F1C2E]">{aiResult.item}</p></div>}
+                {aiResult.quantity && <div><span className="text-slate-500">Quantity</span><p className="font-medium text-[#0F1C2E]">{aiResult.quantity}</p></div>}
+                {aiResult.brand && <div><span className="text-slate-500">Brand</span><p className="font-medium text-[#0F1C2E]">{aiResult.brand}</p></div>}
+                {aiResult.specifications.map((s, i) => (
+                  <div key={i}><span className="text-slate-500">{s.field}</span><p className="font-medium text-[#0F1C2E]">{s.value} <span className={`text-[10px] rounded px-1 ${s.source === "stated" ? "text-emerald-700 bg-emerald-100" : "text-sky-700 bg-sky-100"}`}>{s.source === "stated" ? "from your description" : "AI-inferred"}</span></p></div>
+                ))}
               </div>
-              <div className="mt-3 rounded-lg bg-white border border-amber-200 px-3 py-2 text-amber-800 text-xs flex items-center gap-2">
-                <AlertTriangle size={14} /> Missing — please confirm: dimensions, voltage, preferred brand
-              </div>
+              {aiResult.missing.length > 0 && (
+                <div className="mt-3 rounded-lg bg-white border border-amber-200 px-3 py-2 text-amber-800 text-xs flex items-center gap-2">
+                  <AlertTriangle size={14} /> Missing — please confirm: {aiResult.missing.join(", ")}
+                </div>
+              )}
+              <button onClick={applyAiResult} className="mt-2 text-xs font-medium text-sky-700 underline">Use this to fill in the fields below</button>
             </div>
           )}
 

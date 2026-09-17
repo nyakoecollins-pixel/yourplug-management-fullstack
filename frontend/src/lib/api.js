@@ -105,6 +105,12 @@ export const api = {
     request(`/requests/${requestId}/documents`, { headers: { Authorization: `Bearer ${token}` } }),
   getDocumentDownloadUrl: (token, documentId) =>
     request(`/documents/${documentId}/download`, { headers: { Authorization: `Bearer ${token}` } }),
+  extractSpecification: (token, description) =>
+    request("/ai/extract-specification", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ description }),
+    }),
   estimateLandedCost: (payload) =>
     request("/international/estimate", { method: "POST", body: JSON.stringify(payload) }),
   saveLandedCostEstimate: (token, payload) =>
