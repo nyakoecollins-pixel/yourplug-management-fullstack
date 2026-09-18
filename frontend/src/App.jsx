@@ -4,7 +4,7 @@ import {
   Globe2, Zap, Building2, Menu, X, ChevronRight, Upload, MapPin, Phone, Mail,
   FileText, MessageSquare, Bell, Settings, LogOut, LayoutGrid, ClipboardList,
   Receipt, CreditCard, Users, Wrench, BarChart3, AlertTriangle, Star, Plus,
-  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart
+  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart, Layers
 } from "lucide-react";
 import { api } from "./lib/api.js";
 
@@ -118,7 +118,7 @@ const REQUESTS = [
   },
 ];
 
-const CATEGORIES = ["Electronics", "Office Equipment", "Furniture", "Industrial Equipment", "Business Supplies", "Auto Parts", "Home Products", "Specialty Items", "International Products", "And more"];
+const CATEGORIES = ["Office & Business Supplies", "Electronics & Equipment", "Furniture", "Industrial Supplies", "Construction Materials", "Specialized Products", "Professional Services", "Personal Procurement", "Imports on Request"];
 
 /* ---------------------------------------------------------------------- */
 /* SHARED UI PRIMITIVES                                                   */
@@ -176,7 +176,7 @@ function SecondaryButton({ children, onClick, className = "" }) {
 function SiteHeader({ nav, setNav, session, setSession }) {
   const [open, setOpen] = useState(false);
   const links = [
-    ["Home", "home"], ["Services", "services"], ["International", "international"], ["Contact", "contact"],
+    ["Home", "home"], ["Services", "services"], ["Contact", "contact"],
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -301,12 +301,12 @@ const HOW_IT_WORKS = [
 ];
 
 const WHY_CARDS = [
-  [Clock, "Save time", "Stop spending hours searching through suppliers and websites.", "bg-[#0F8B75]"],
-  [TrendingDown, "Compare before you buy", "We compare available options before recommending a purchase.", "bg-sky-500"],
-  [Search, "We search for you", "We identify suitable sourcing options that match your requirements.", "bg-amber-500"],
-  [PackageCheck, "Purchase to delivery", "We help coordinate the whole process, end to end.", "bg-[#0F8B75]"],
-  [Globe2, "Local & international", "Procurement beyond your immediate location, with landed-cost estimates.", "bg-sky-500"],
-  [HandHeart, "One procurement partner", "One place to manage every request, instead of ten open conversations.", "bg-amber-500"],
+  [Clock, "Time saved", "Stop spending hours searching through suppliers and websites.", "bg-[#0F8B75]"],
+  [TrendingDown, "Supplier comparison", "We compare available options before recommending a purchase.", "bg-sky-500"],
+  [Search, "Local supplier sourcing", "We identify suitable local suppliers that match your requirements.", "bg-amber-500"],
+  [PackageCheck, "Procurement coordination", "We help coordinate the whole process, end to end.", "bg-[#0F8B75]"],
+  [ShieldCheck, "Quality-focused sourcing", "We prioritize suppliers on reliability and quality, not just price.", "bg-sky-500"],
+  [HandHeart, "Transparent quotations", "You see the full procurement breakdown before you approve anything.", "bg-amber-500"],
 ];
 
 function HomePage({ setNav }) {
@@ -318,8 +318,11 @@ function HomePage({ setNav }) {
         <Section className="relative py-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <p className="text-sm font-semibold text-amber-300 mb-4 tracking-wide">Your Personal Procurement Partner</p>
-            <h1 className="text-5xl font-semibold tracking-tight text-white leading-[1.08]">Tell us what you need. We handle the procurement.</h1>
-            <p className="mt-6 text-lg text-slate-300 max-w-lg">We find it, compare it, buy it, and get it to you — for individuals, entrepreneurs and businesses alike.</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-white leading-[1.08]">We source quality goods and services for you.</h1>
+            <p className="mt-6 text-lg text-slate-300 max-w-lg">Tell us what you need and YourPlug handles the sourcing process — from finding suitable suppliers and comparing options to coordinating purchasing and delivery.</p>
+            <div className="mt-6 rounded-lg bg-white/5 border border-white/10 px-4 py-3 max-w-lg">
+              <p className="text-sm text-slate-300">Local procurement is our core service. Need something from abroad? We can also source and arrange imports on request.</p>
+            </div>
             <div className="mt-8 flex flex-wrap gap-4">
               <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton>
               <button onClick={() => setNav("track")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Track My Order</button>
@@ -369,8 +372,8 @@ function HomePage({ setNav }) {
 
       <Section className="bg-gradient-to-br from-sky-50 via-white to-[#0F8B75]/5 rounded-3xl">
         <Eyebrow>What do you need?</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday essentials to specialized business requirements.</h2>
-        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you're looking for and we'll handle the procurement process. These are examples — not a catalogue to browse.</p>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday supplies to specialized goods and services.</h2>
+        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you need and we'll source it for you. These are examples — not a catalogue to browse.</p>
         <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
             [CATEGORIES[0], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[1], "bg-sky-100 text-sky-700"], [CATEGORIES[2], "bg-amber-100 text-amber-700"],
@@ -385,12 +388,16 @@ function HomePage({ setNav }) {
       <Section>
         <Eyebrow>Why YourPlug</Eyebrow>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-          {WHY_CARDS.map(([Icon, title, body, bg]) => (
-            <div key={title} className="rounded-2xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg} text-white mb-4`}><Icon size={20} /></div>
-              <p className="font-medium text-[#0F1C2E]">{title}</p><p className="text-sm text-slate-600 mt-1">{body}</p>
-            </div>
-          ))}
+          {WHY_CARDS.map(([Icon, title, body, bg], i) => {
+            const dark = i % 2 === 0;
+            return (
+              <div key={title} className={`rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow ${dark ? "bg-[#0F1C2E]" : "bg-slate-50 border border-slate-200"}`}>
+                <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg} text-white mb-4`}><Icon size={20} /></div>
+                <p className={`font-medium ${dark ? "text-white" : "text-[#0F1C2E]"}`}>{title}</p>
+                <p className={`text-sm mt-1 ${dark ? "text-slate-300" : "text-slate-600"}`}>{body}</p>
+              </div>
+            );
+          })}
         </div>
       </Section>
 
@@ -416,18 +423,18 @@ function HomePage({ setNav }) {
           <Photo src="https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=800&q=70" alt="Procurement services" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/30 to-transparent" />
           <div className="relative h-full flex flex-col justify-end p-7">
-            <p className="font-medium text-lg text-white">Services</p>
-            <p className="text-sm text-slate-200 mt-1">Personal, business, local and urgent procurement.</p>
+            <p className="font-medium text-lg text-white">Local procurement</p>
+            <p className="text-sm text-slate-200 mt-1">Personal, business and urgent procurement, sourced locally.</p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">See services <ChevronRight size={14} /></span>
           </div>
         </button>
-        <button onClick={() => setNav("international")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
+        <button onClick={() => setNav("services")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
           <Photo src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=800&q=70" alt="International shipping" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0c2d4f]/90 via-[#0c2d4f]/30 to-transparent" />
           <div className="relative h-full flex flex-col justify-end p-7">
-            <p className="font-medium text-lg text-white">International procurement</p>
-            <p className="text-sm text-slate-200 mt-1">Sourcing from overseas with an estimated landed cost.</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">Estimate a cost <ChevronRight size={14} /></span>
+            <p className="font-medium text-lg text-white">Imports on request</p>
+            <p className="text-sm text-slate-200 mt-1">Need something from abroad? We can source and coordinate imports too.</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">Learn more <ChevronRight size={14} /></span>
           </div>
         </button>
       </Section>
@@ -476,30 +483,47 @@ function ServicesPage({ setNav }) {
   const cards = [
     [Package, "Personal procurement", "Everyday purchases sourced and delivered without the legwork.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
     [Building2, "Business procurement", "Multi-user accounts, spending visibility and monthly statements for organizations.", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=700&q=70"],
-    [Search, "Supplier sourcing", "We identify suitable suppliers based on your requirements.", "https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=700&q=70"],
-    [Globe2, "International procurement", "Sourcing overseas with transparent landed-cost estimates.", "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=700&q=70"],
+    [Search, "Supplier sourcing", "We identify suitable local suppliers based on your requirements.", "https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=700&q=70"],
+    [Layers, "Bulk procurement", "Sourcing larger quantities for offices, sites and organizations.", "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=700&q=70"],
     [Zap, "Urgent procurement", "Priority handling for time-sensitive requirements.", "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=700&q=70"],
-    [PackageCheck, "Delivery coordination", "We coordinate delivery after the purchase is made.", "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=700&q=70"],
+    [PackageCheck, "Logistics & delivery coordination", "We coordinate delivery after the purchase is made.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
   ];
   return (
-    <Section>
-      <Eyebrow>Services</Eyebrow>
-      <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">Procurement services for every kind of buyer.</h1>
-      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map(([Icon, title, body, img]) => (
-          <div key={title} className="group relative rounded-2xl overflow-hidden h-56 shadow-sm hover:shadow-lg transition-shadow">
-            <Photo src={img} alt={title} className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/20 to-transparent" />
-            <div className="relative h-full flex flex-col justify-end p-6">
-              <Icon size={18} className="text-amber-300 mb-2" />
-              <p className="font-medium text-white">{title}</p>
-              <p className="text-xs text-slate-200 mt-1">{body}</p>
+    <>
+      <Section>
+        <Eyebrow>Services</Eyebrow>
+        <h1 className="text-4xl font-semibold text-[#0F1C2E] max-w-2xl">Local procurement for goods, equipment and services.</h1>
+        <p className="mt-4 text-slate-600 max-w-2xl">Local procurement is our core focus — sourcing quality goods and services from suppliers here in Kenya, compared and coordinated for you.</p>
+        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cards.map(([Icon, title, body, img]) => (
+            <div key={title} className="group relative rounded-2xl overflow-hidden h-56 shadow-sm hover:shadow-lg transition-shadow">
+              <Photo src={img} alt={title} className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/20 to-transparent" />
+              <div className="relative h-full flex flex-col justify-end p-6">
+                <Icon size={18} className="text-amber-300 mb-2" />
+                <p className="font-medium text-white">{title}</p>
+                <p className="text-xs text-slate-200 mt-1">{body}</p>
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="bg-[#0F1C2E] rounded-3xl text-white">
+        <Eyebrow color="text-sky-300">International sourcing & imports on request</Eyebrow>
+        <h2 className="text-2xl font-semibold max-w-2xl">A secondary service, available when you need it.</h2>
+        <p className="mt-4 text-slate-300 max-w-2xl">While our primary focus is local procurement, customers can request products or equipment that need to be sourced internationally. YourPlug can coordinate the sourcing and import process where applicable, including an estimated landed cost before you commit to anything.</p>
+        <button onClick={() => setNav("international")} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-amber-300">Learn more about imports <ChevronRight size={14} /></button>
+      </Section>
+
+      <Section className="grid lg:grid-cols-3 gap-6">
+        {[["Who we serve", "Individuals, entrepreneurs, SMEs and businesses — the same platform and process for everyone."], ["Why YourPlug", "Quality-focused sourcing, transparent quotations, and one procurement partner instead of ten open conversations."], ["About YourPlug", "A Kenyan procurement technology company combining trained staff with technology that keeps every request transparent."]].map(([t, b]) => (
+          <div key={t} className="rounded-2xl bg-slate-50 border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
         ))}
-      </div>
-      <div className="mt-12"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></div>
-    </Section>
+      </Section>
+
+      <Section className="text-center"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></Section>
+    </>
   );
 }
 
@@ -969,7 +993,7 @@ function RequestDetail({ req, setTab }) {
 
 function NewRequestWizard({ session, onSubmitted }) {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local" });
+  const [form, setForm] = useState({ item: "", desc: "", qty: 1, budget: "", urgency: "Normal", delivery: "", scope: "Local", supplierLink: "", originCountry: "" });
   const [aiResult, setAiResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -1014,9 +1038,12 @@ function NewRequestWizard({ session, onSubmitted }) {
     }
     setSubmitting(true); setError("");
     try {
+      const importNote = form.scope === "International" && (form.supplierLink || form.originCountry)
+        ? `\n\nImport details — Supplier/website: ${form.supplierLink || "not provided"}; Country of origin: ${form.originCountry || "not provided"}`
+        : "";
       const payload = {
         item: form.item || form.desc.slice(0, 60) || "Untitled request",
-        description: form.desc || undefined,
+        description: (form.desc || "") + importNote || undefined,
         quantity: Number(form.qty) || 1,
         budget: form.budget ? Number(form.budget) : undefined,
         currency: "KES",
@@ -1108,12 +1135,20 @@ function NewRequestWizard({ session, onSubmitted }) {
                 <option>Normal</option><option>High</option><option>Urgent</option><option>Emergency</option>
               </select>
             </div>
-            <div><label className="text-xs text-slate-500">Procurement scope</label>
+            <div><label className="text-xs text-slate-500">Procurement type</label>
               <select value={form.scope} onChange={e => set("scope", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                <option>Local</option><option>International</option>
+                <option value="Local">Local Procurement</option>
+                <option value="International">Import / International Sourcing</option>
               </select>
             </div>
           </div>
+          {form.scope === "International" && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 space-y-3">
+              <p className="text-xs font-medium text-sky-800">Import details</p>
+              <input value={form.supplierLink} onChange={e => set("supplierLink", e.target.value)} placeholder="Supplier or website (if known)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              <input value={form.originCountry} onChange={e => set("originCountry", e.target.value)} placeholder="Country of origin" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            </div>
+          )}
           <PrimaryButton onClick={() => setStep(2)}>Continue</PrimaryButton>
         </div>
       )}
@@ -1164,7 +1199,7 @@ function NewRequestWizard({ session, onSubmitted }) {
         <div className="space-y-5">
           <h2 className="text-xl font-medium text-[#0F1C2E]">Review request</h2>
           <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
-            {[["Item", form.item || form.desc.slice(0, 60) || "Not specified"], ["Quantity", form.qty], ["Budget", form.budget || "Not specified"], ["Urgency", form.urgency], ["Scope", form.scope], ["Delivery to", form.delivery || "Not specified"]].map(([k, v]) => (
+            {[["Item", form.item || form.desc.slice(0, 60) || "Not specified"], ["Quantity", form.qty], ["Budget", form.budget || "Not specified"], ["Urgency", form.urgency], ["Procurement type", form.scope === "International" ? "Import / International Sourcing" : "Local Procurement"], ["Delivery to", form.delivery || "Not specified"]].map(([k, v]) => (
               <div key={k} className="flex justify-between px-4 py-3"><span className="text-slate-500">{k}</span><span className="font-medium text-[#0F1C2E]">{v}</span></div>
             ))}
           </div>
