@@ -59,8 +59,9 @@ requestsRouter.get("/:id", async (req, res) => {
   if (!request) return res.status(404).json({ error: "Request not found." });
 
   const isOwner = request.customerId === req.user!.sub;
-  const isStaff = req.user!.role === "AGENT" || req.user!.role === "ADMIN";
-  if (!isOwner && !isStaff) return res.status(403).json({ error: "You can't view this request." });
+  const isAdmin = req.user!.role === "ADMIN";
+  const isAssignedAgent = req.user!.role === "AGENT" && request.agentId === req.user!.sub;
+  if (!isOwner && !isAdmin && !isAssignedAgent) return res.status(403).json({ error: "You can't view this request." });
 
   res.json(request);
 });
@@ -68,8 +69,12 @@ requestsRouter.get("/:id", async (req, res) => {
 // Staff-only: full queue across all customers
 requestsRouter.get("/", requireRole("AGENT", "ADMIN"), async (req, res) => {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const isAgent = req.user!.role === "AGENT";
   const requests = await prisma.procurementRequest.findMany({
-    where: status ? { status: status as any } : undefined,
+    where: {
+      ...(status ? { status: status as any } : {}),
+      ...(isAgent ? { agentId: req.user!.sub } : {}), // agents only ever see their own assignments
+    },
     orderBy: { createdAt: "desc" },
     include: { customer: true, agent: true, quotes: true },
   });

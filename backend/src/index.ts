@@ -14,6 +14,7 @@ import { internationalRouter } from "./routes/international.js";
 import { fulfillmentRouter } from "./routes/fulfillment.js";
 import { documentsRouter } from "./routes/documents.js";
 import { aiRouter } from "./routes/ai.js";
+import { supplierPortalRouter } from "./routes/supplierPortal.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/api/international", internationalRouter);
 app.use("/api", fulfillmentRouter);
 app.use("/api", documentsRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/supplier", supplierPortalRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

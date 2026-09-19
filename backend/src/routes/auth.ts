@@ -26,7 +26,7 @@ const registerSchema = z.object({
   password: z.string().min(8),
   acceptedTerms: z.literal(true),
   acceptedPrivacy: z.literal(true),
-  accountType: z.enum(["INDIVIDUAL", "BUSINESS"]).default("INDIVIDUAL"),
+  accountType: z.enum(["INDIVIDUAL", "BUSINESS", "SUPPLIER"]).default("INDIVIDUAL"),
   organization: z.object({
     companyName: z.string().min(2),
     registrationNumber: z.string().optional(),
@@ -35,6 +35,12 @@ const registerSchema = z.object({
     contactPerson: z.string().optional(),
     billingEmail: z.string().email().optional(),
   }).optional(),
+  supplierProfile: z.object({
+    companyName: z.string().min(2),
+    category: z.string().min(1),
+    location: z.string().min(1),
+    website: z.string().optional(),
+  }).optional(),
 });
 
 authRouter.post("/register", async (req, res) => {
@@ -42,9 +48,12 @@ authRouter.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Check your details and try again.", details: parsed.error.flatten() });
   }
-  const { name, email, phone, password, accountType, organization } = parsed.data;
+  const { name, email, phone, password, accountType, organization, supplierProfile } = parsed.data;
   if (accountType === "BUSINESS" && !organization?.companyName) {
     return res.status(400).json({ error: "Company name is required for a business account." });
+  }
+  if (accountType === "SUPPLIER" && !supplierProfile?.companyName) {
+    return res.status(400).json({ error: "Company name, category, and location are required for a supplier account." });
   }
 
   const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { phone }] } });
@@ -60,8 +69,21 @@ authRouter.post("/register", async (req, res) => {
     organizationId = org.id;
   }
 
+  let supplierId: string | undefined;
+  if (accountType === "SUPPLIER" && supplierProfile) {
+    const supplier = await prisma.supplier.create({
+      data: { name: supplierProfile.companyName, category: supplierProfile.category, location: supplierProfile.location, website: supplierProfile.website },
+    });
+    supplierId = supplier.id;
+  }
+
   const user = await prisma.user.create({
-    data: { name, email, phone, passwordHash, role: "CUSTOMER", accountType, organizationId },
+    data: {
+      name, email, phone, passwordHash,
+      role: accountType === "SUPPLIER" ? "SUPPLIER" : "CUSTOMER",
+      accountType: accountType === "SUPPLIER" ? "INDIVIDUAL" : accountType,
+      organizationId, supplierId,
+    },
   });
 
   // Real, queryable consent records — not just a checked checkbox that vanishes

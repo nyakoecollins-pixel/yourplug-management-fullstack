@@ -23,7 +23,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireRole(...roles: Array<"CUSTOMER" | "AGENT" | "ADMIN">) {
+export function requireRole(...roles: Array<"CUSTOMER" | "AGENT" | "ADMIN" | "SUPPLIER">) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ error: "You don't have permission to do that" });

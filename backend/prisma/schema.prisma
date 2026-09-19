@@ -11,6 +11,7 @@ enum Role {
   CUSTOMER
   AGENT
   ADMIN
+  SUPPLIER
 }
 
 enum AccountType {
@@ -71,6 +72,9 @@ model User {
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
+  supplierId String? @unique
+  supplierProfile Supplier? @relation(fields: [supplierId], references: [id])
+
   requestsAsCustomer ProcurementRequest[] @relation("CustomerRequests")
   requestsAsAgent    ProcurementRequest[] @relation("AgentRequests")
   refreshTokens      RefreshToken[]
@@ -121,6 +125,7 @@ model Supplier {
   name        String
   category    String
   location    String
+  website     String?
   verified    Boolean  @default(false)
   reliability Int      @default(80)
   priceScore  Int      @default(80)
@@ -130,6 +135,7 @@ model Supplier {
 
   quotes SupplierQuote[]
   purchaseOrders PurchaseOrder[]
+  user   User?
 }
 
 model ProcurementRequest {

@@ -119,4 +119,22 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     }),
+  // Agent management (admin)
+  createAgent: (token, payload) =>
+    request("/admin/agents", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  getAgents: (token) => request("/admin/agents", { headers: { Authorization: `Bearer ${token}` } }),
+  assignAgent: (token, requestId, agentId) =>
+    request(`/admin/requests/${requestId}/assign`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ agentId }) }),
+  // Admin document audit trail
+  getAllDocuments: (token) => request("/admin/documents", { headers: { Authorization: `Bearer ${token}` } }),
+  getAdminDocumentDownloadUrl: (token, docId) =>
+    request(`/admin/documents/${docId}/download`, { headers: { Authorization: `Bearer ${token}` } }),
+  // Supplier self-service portal
+  getOpenRequests: (token) => request("/supplier/open-requests", { headers: { Authorization: `Bearer ${token}` } }),
+  submitSupplierQuote: (token, requestId, payload) =>
+    request(`/supplier/requests/${requestId}/quote`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  getMySupplierQuotes: (token) => request("/supplier/quotes/mine", { headers: { Authorization: `Bearer ${token}` } }),
+  getSupplierProfile: (token) => request("/supplier/profile", { headers: { Authorization: `Bearer ${token}` } }),
+  updateSupplierProfile: (token, payload) =>
+    request("/supplier/profile", { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
 };

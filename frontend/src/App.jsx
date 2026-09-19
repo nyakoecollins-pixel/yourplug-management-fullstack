@@ -4,7 +4,7 @@ import {
   Globe2, Zap, Building2, Menu, X, ChevronRight, Upload, MapPin, Phone, Mail,
   FileText, MessageSquare, Bell, Settings, LogOut, LayoutGrid, ClipboardList,
   Receipt, CreditCard, Users, Wrench, BarChart3, AlertTriangle, Star, Plus,
-  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart, Layers
+  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart, Layers, Sun, Moon
 } from "lucide-react";
 import { api } from "./lib/api.js";
 
@@ -176,7 +176,7 @@ function SecondaryButton({ children, onClick, className = "" }) {
 function SiteHeader({ nav, setNav, session, setSession }) {
   const [open, setOpen] = useState(false);
   const links = [
-    ["Home", "home"], ["Services", "services"], ["Contact", "contact"],
+    ["Home", "home"], ["Services", "services"], ["International", "international"], ["Contact", "contact"],
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -196,9 +196,9 @@ function SiteHeader({ nav, setNav, session, setSession }) {
         <div className="hidden lg:flex items-center gap-3">
           <button onClick={() => setNav("track")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Track My Order</button>
           {session ? (
-            <button onClick={() => setNav(session.role === "admin" ? "admin" : "dashboard")}
+            <button onClick={() => setNav(session.role === "customer" ? "dashboard" : session.role)}
               className="rounded-lg bg-[#0F8B75] px-4 py-2 text-sm font-medium text-white hover:bg-[#0c6f5d]">
-              Go to {session.role === "admin" ? "Admin" : "Dashboard"}
+              Go to {session.role === "admin" ? "Admin" : session.role === "agent" ? "Agent Portal" : session.role === "supplier" ? "Supplier Portal" : "Dashboard"}
             </button>
           ) : (
             <>
@@ -333,9 +333,9 @@ function HomePage({ setNav }) {
             </div>
           </div>
           <div className="relative h-[420px] hidden sm:block">
-            <Photo src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=700&q=70" alt="Procurement professional at work"
+            <Photo src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70" alt="Procurement professional at work"
               className="absolute top-0 right-0 w-72 h-80 rounded-2xl shadow-2xl rotate-2" />
-            <Photo src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=500&q=70" alt="Delivery package"
+            <Photo src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=500&q=70" alt="Delivery package"
               className="absolute bottom-0 left-0 w-52 h-52 rounded-2xl shadow-2xl -rotate-3" />
             <div className="absolute top-10 left-0 w-64 rounded-xl bg-white p-4 shadow-xl">
               <p className="text-[11px] text-slate-400 mb-2">YPM-202609-00127 · HP EliteBook</p>
@@ -350,6 +350,21 @@ function HomePage({ setNav }) {
 
       <Section className="text-center max-w-3xl">
         <p className="text-xl text-slate-700 leading-relaxed">You have something to buy. Instead of spending hours comparing suppliers yourself, hand it to YourPlug — a managed procurement service, not a marketplace.</p>
+      </Section>
+
+      <Section className="bg-gradient-to-br from-sky-50 via-white to-[#0F8B75]/5 rounded-3xl">
+        <Eyebrow>What do you need?</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday supplies to specialized goods and services.</h2>
+        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you need and we'll source it for you. These are examples — not a catalogue to browse.</p>
+        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            [CATEGORIES[0], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[1], "bg-sky-100 text-sky-700"], [CATEGORIES[2], "bg-amber-100 text-amber-700"],
+            [CATEGORIES[3], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[4], "bg-sky-100 text-sky-700"], [CATEGORIES[5], "bg-amber-100 text-amber-700"],
+            [CATEGORIES[6], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[7], "bg-sky-100 text-sky-700"], [CATEGORIES[8], "bg-amber-100 text-amber-700"],
+          ].map(([c, tone]) => (
+            <button key={c} onClick={() => setNav("register")} className={`rounded-xl px-4 py-5 text-sm font-medium text-left hover:-translate-y-0.5 transition-transform ${tone}`}>{c}</button>
+          ))}
+        </div>
       </Section>
 
       <Section>
@@ -370,110 +385,18 @@ function HomePage({ setNav }) {
         </div>
       </Section>
 
-      <Section className="bg-gradient-to-br from-sky-50 via-white to-[#0F8B75]/5 rounded-3xl">
-        <Eyebrow>What do you need?</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday supplies to specialized goods and services.</h2>
-        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you need and we'll source it for you. These are examples — not a catalogue to browse.</p>
-        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[
-            [CATEGORIES[0], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[1], "bg-sky-100 text-sky-700"], [CATEGORIES[2], "bg-amber-100 text-amber-700"],
-            [CATEGORIES[3], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[4], "bg-sky-100 text-sky-700"], [CATEGORIES[5], "bg-amber-100 text-amber-700"],
-            [CATEGORIES[6], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[7], "bg-sky-100 text-sky-700"], [CATEGORIES[8], "bg-amber-100 text-amber-700"],
-          ].map(([c, tone]) => (
-            <button key={c} onClick={() => setNav("register")} className={`rounded-xl px-4 py-5 text-sm font-medium text-left hover:-translate-y-0.5 transition-transform ${tone}`}>{c}</button>
+      <Section className="bg-[#0F1C2E] rounded-3xl">
+        <Eyebrow color="text-amber-300">Why YourPlug</Eyebrow>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+          {WHY_CARDS.map(([Icon, title, body, bg]) => (
+            <div key={title} className="rounded-2xl p-6 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg} text-white mb-4`}><Icon size={20} /></div>
+              <p className="font-medium text-white">{title}</p>
+              <p className="text-sm mt-1 text-slate-300">{body}</p>
+            </div>
           ))}
         </div>
-      </Section>
-
-      <Section>
-        <Eyebrow>Why YourPlug</Eyebrow>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-          {WHY_CARDS.map(([Icon, title, body, bg], i) => {
-            const dark = i % 2 === 0;
-            return (
-              <div key={title} className={`rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow ${dark ? "bg-[#0F1C2E]" : "bg-slate-50 border border-slate-200"}`}>
-                <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg} text-white mb-4`}><Icon size={20} /></div>
-                <p className={`font-medium ${dark ? "text-white" : "text-[#0F1C2E]"}`}>{title}</p>
-                <p className={`text-sm mt-1 ${dark ? "text-slate-300" : "text-slate-600"}`}>{body}</p>
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-
-      <Section className="grid lg:grid-cols-2 gap-12 items-center">
-        <Photo src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=70" alt="Team reviewing procurement options" className="rounded-2xl h-96 shadow-lg" />
-        <div>
-          <Eyebrow color="text-sky-600">One managed process</Eyebrow>
-          <h2 className="text-3xl font-semibold text-[#0F1C2E]">We do the searching. You make the decision.</h2>
-          <p className="mt-4 text-slate-600">No browsing listings, no chasing suppliers, no juggling multiple deliveries. You tell us once, we bring back one clear recommendation, and you approve before anything is purchased.</p>
-          <div className="mt-6"><PrimaryButton onClick={() => setNav("register")}>Start a Request</PrimaryButton></div>
-        </div>
-      </Section>
-
-      <Section className="bg-gradient-to-br from-[#0F8B75]/10 to-sky-50 rounded-3xl">
-        <Eyebrow>Individual & business procurement</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">One platform, whether you're buying for yourself or your business.</h2>
-        <p className="mt-4 text-slate-600 max-w-2xl">Individuals get the same sourcing, comparison and delivery process as businesses — register as an individual or a business, and the procurement engine underneath is the same either way.</p>
-        <div className="mt-8"><PrimaryButton onClick={() => setNav("register")}>Get started</PrimaryButton></div>
-      </Section>
-
-      <Section className="grid lg:grid-cols-2 gap-6">
-        <button onClick={() => setNav("services")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
-          <Photo src="https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=800&q=70" alt="Procurement services" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F1C2E]/90 via-[#0F1C2E]/30 to-transparent" />
-          <div className="relative h-full flex flex-col justify-end p-7">
-            <p className="font-medium text-lg text-white">Local procurement</p>
-            <p className="text-sm text-slate-200 mt-1">Personal, business and urgent procurement, sourced locally.</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">See services <ChevronRight size={14} /></span>
-          </div>
-        </button>
-        <button onClick={() => setNav("services")} className="group relative text-left rounded-2xl overflow-hidden h-64 shadow-sm hover:shadow-lg transition-shadow">
-          <Photo src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=800&q=70" alt="International shipping" className="absolute inset-0 h-full w-full group-hover:scale-105 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c2d4f]/90 via-[#0c2d4f]/30 to-transparent" />
-          <div className="relative h-full flex flex-col justify-end p-7">
-            <p className="font-medium text-lg text-white">Imports on request</p>
-            <p className="text-sm text-slate-200 mt-1">Need something from abroad? We can source and coordinate imports too.</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-300">Learn more <ChevronRight size={14} /></span>
-          </div>
-        </button>
-      </Section>
-
-      <Section className="bg-gradient-to-br from-amber-50 via-white to-slate-50 rounded-3xl">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <Eyebrow color="text-amber-600">About YourPlug</Eyebrow>
-            <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-lg">Technology powered, human managed.</h2>
-            <p className="mt-5 text-slate-600 max-w-xl">Procurement shouldn't be stressful. YourPlug Management exists because sourcing, comparing, negotiating and coordinating delivery takes real expertise and real time — time our customers don't have. We combine trained procurement staff with technology that keeps every request transparent, from the first message to final delivery.</p>
-            <div className="mt-8 grid sm:grid-cols-3 gap-4">
-              {[["Verified suppliers", "Scored on price, reliability, delivery and warranty."], ["Real staff", "Every request is handled by a person, not left to an algorithm."], ["Full audit trail", "Every status change is logged and available to you."]].map(([t, b]) => (
-                <div key={t}><p className="font-medium text-sm text-[#0F1C2E]">{t}</p><p className="text-xs text-slate-500 mt-1">{b}</p></div>
-              ))}
-            </div>
-          </div>
-          <Photo src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=70" alt="YourPlug procurement team" className="rounded-2xl h-96 shadow-lg" />
-        </div>
-      </Section>
-
-      <Section className="bg-[#0F8B75] rounded-3xl text-white">
-        <Eyebrow color="text-amber-200">Contact</Eyebrow>
-        <h2 className="text-3xl font-semibold">Talk to YourPlug directly.</h2>
-        <div className="mt-8 grid sm:grid-cols-3 gap-4">
-          <a href="#" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><MessageSquare size={18} /><span className="text-sm font-medium">WhatsApp</span></a>
-          <a href="tel:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Phone size={18} /><span className="text-sm font-medium">Call us</span></a>
-          <a href="mailto:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Mail size={18} /><span className="text-sm font-medium">Email</span></a>
-        </div>
-        <p className="mt-4 text-xs text-emerald-100">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
-        <button onClick={() => setNav("contact")} className="mt-4 text-sm font-medium text-white underline">Full contact page →</button>
-      </Section>
-
-      <Section className="text-center bg-[#0F1C2E] rounded-3xl text-white relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-amber-400/20 blur-3xl" />
-        <h2 className="relative text-3xl font-semibold">Stop searching. Start requesting.</h2>
-        <div className="relative mt-8 flex justify-center gap-4">
-          <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton>
-          <button onClick={() => setNav("track")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Track My Order</button>
-        </div>
+        <div className="mt-10 text-center"><PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton></div>
       </Section>
     </>
   );
@@ -482,10 +405,10 @@ function HomePage({ setNav }) {
 function ServicesPage({ setNav }) {
   const cards = [
     [Package, "Personal procurement", "Everyday purchases sourced and delivered without the legwork.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
-    [Building2, "Business procurement", "Multi-user accounts, spending visibility and monthly statements for organizations.", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=700&q=70"],
-    [Search, "Supplier sourcing", "We identify suitable local suppliers based on your requirements.", "https://images.unsplash.com/photo-1553413077-190083ec01fb?auto=format&fit=crop&w=700&q=70"],
-    [Layers, "Bulk procurement", "Sourcing larger quantities for offices, sites and organizations.", "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=700&q=70"],
-    [Zap, "Urgent procurement", "Priority handling for time-sensitive requirements.", "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=700&q=70"],
+    [Building2, "Business procurement", "Multi-user accounts, spending visibility and monthly statements for organizations.", "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=700&q=70"],
+    [Search, "Supplier sourcing", "We identify suitable local suppliers based on your requirements.", "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=700&q=70"],
+    [Layers, "Bulk procurement", "Sourcing larger quantities for offices, sites and organizations.", "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=700&q=70"],
+    [Zap, "Urgent procurement", "Priority handling for time-sensitive requirements.", "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70"],
     [PackageCheck, "Logistics & delivery coordination", "We coordinate delivery after the purchase is made.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
   ];
   return (
@@ -520,6 +443,26 @@ function ServicesPage({ setNav }) {
         {[["Who we serve", "Individuals, entrepreneurs, SMEs and businesses — the same platform and process for everyone."], ["Why YourPlug", "Quality-focused sourcing, transparent quotations, and one procurement partner instead of ten open conversations."], ["About YourPlug", "A Kenyan procurement technology company combining trained staff with technology that keeps every request transparent."]].map(([t, b]) => (
           <div key={t} className="rounded-2xl bg-slate-50 border border-slate-200 p-6"><p className="font-medium text-[#0F1C2E]">{t}</p><p className="text-sm text-slate-600 mt-2">{b}</p></div>
         ))}
+      </Section>
+
+      <Section className="grid lg:grid-cols-2 gap-12 items-center">
+        <Photo src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=70" alt="YourPlug procurement team" className="rounded-2xl h-80 shadow-lg" />
+        <div>
+          <Eyebrow color="text-amber-600">About YourPlug</Eyebrow>
+          <h2 className="text-2xl font-semibold text-[#0F1C2E] max-w-lg">Technology powered, human managed.</h2>
+          <p className="mt-4 text-slate-600 max-w-xl">Procurement shouldn't be stressful. YourPlug Management combines trained procurement staff with technology that keeps every request transparent, from the first message to final delivery. No browsing listings, no chasing suppliers — you tell us once, we bring back one clear recommendation, and you approve before anything is purchased.</p>
+        </div>
+      </Section>
+
+      <Section className="bg-[#0F8B75] rounded-3xl text-white">
+        <Eyebrow color="text-amber-200">Contact</Eyebrow>
+        <h2 className="text-2xl font-semibold">Talk to YourPlug directly.</h2>
+        <div className="mt-8 grid sm:grid-cols-3 gap-4">
+          <a href="#" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><MessageSquare size={18} /><span className="text-sm font-medium">WhatsApp</span></a>
+          <a href="tel:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Phone size={18} /><span className="text-sm font-medium">Call us</span></a>
+          <a href="mailto:" className="rounded-xl bg-white/10 hover:bg-white/20 p-5 flex items-center gap-3 transition-colors"><Mail size={18} /><span className="text-sm font-medium">Email</span></a>
+        </div>
+        <p className="mt-4 text-xs text-emerald-100">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
       </Section>
 
       <Section className="text-center"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></Section>
@@ -638,7 +581,7 @@ function InternationalPage({ setNav, session }) {
             <p className="mt-5 text-slate-300">Estimate your landed cost, understand the import expenses, and let YourPlug manage the procurement.</p>
             <div className="mt-8"><PrimaryButton onClick={() => setNav("register")} className="!bg-amber-500 hover:!bg-amber-600">Request an international item</PrimaryButton></div>
           </div>
-          <Photo src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=800&q=70" alt="Shipping containers at port" className="rounded-2xl h-80 shadow-2xl" />
+          <Photo src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=70" alt="Shipping containers at port" className="rounded-2xl h-80 shadow-2xl" />
         </Section>
       </div>
       <Section>
@@ -719,6 +662,7 @@ function AuthPage({ mode, setNav, onAuth }) {
   const [form, setForm] = useState({
     name: "", email: "", phone: "", password: "", confirm: "", terms: false, privacy: false,
     companyName: "", registrationNumber: "", businessType: "", address: "", contactPerson: "",
+    supplierCategory: "", supplierLocation: "", supplierWebsite: "",
   });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -739,14 +683,19 @@ function AuthPage({ mode, setNav, onAuth }) {
             businessType: form.businessType || undefined, address: form.address || undefined,
             contactPerson: form.contactPerson || undefined,
           } : undefined,
+          supplierProfile: accountType === "SUPPLIER" ? {
+            companyName: form.companyName, category: form.supplierCategory, location: form.supplierLocation,
+            website: form.supplierWebsite || undefined,
+          } : undefined,
         });
-        setNotice("Account created. Check the API server logs for your demo verification codes, then log in below.");
+        setNotice("Account created. Check your email/SMS for a verification code, then log in below.");
         setLoading(false);
         return;
       }
       const data = await api.login(form.email, form.password);
-      const role = data.user.role === "ADMIN" ? "admin" : "customer";
-      onAuth(role, { name: data.user.name, token: data.accessToken, role, userId: data.user.id });
+      const roleMap = { ADMIN: "admin", AGENT: "agent", SUPPLIER: "supplier", CUSTOMER: "customer" };
+      const role = roleMap[data.user.role] || "customer";
+      onAuth(role, { name: data.user.name, token: data.accessToken, userId: data.user.id });
     } catch (err) {
       setError(err.message || "Couldn't reach the API. Is the backend running?");
     } finally {
@@ -760,22 +709,20 @@ function AuthPage({ mode, setNav, onAuth }) {
       <p className="mt-2 text-sm text-slate-500">{isRegister ? "Register to submit and track procurement requests." : "Access your dashboard to track requests and approve quotes."}</p>
 
       {isRegister && (
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button type="button" onClick={() => setAccountType("INDIVIDUAL")}
-            className={`rounded-lg border px-4 py-3 text-sm font-medium text-left ${accountType === "INDIVIDUAL" ? "border-[#0F8B75] bg-[#0F8B75]/5 text-[#0F1C2E]" : "border-slate-200 text-slate-500"}`}>
-            Individual
-          </button>
-          <button type="button" onClick={() => setAccountType("BUSINESS")}
-            className={`rounded-lg border px-4 py-3 text-sm font-medium text-left ${accountType === "BUSINESS" ? "border-[#0F8B75] bg-[#0F8B75]/5 text-[#0F1C2E]" : "border-slate-200 text-slate-500"}`}>
-            Business
-          </button>
+        <div className="mt-6 grid grid-cols-3 gap-3">
+          {[["INDIVIDUAL", "Individual"], ["BUSINESS", "Business"], ["SUPPLIER", "Supplier"]].map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setAccountType(key)}
+              className={`rounded-lg border px-3 py-3 text-sm font-medium text-center ${accountType === key ? "border-[#0F8B75] bg-[#0F8B75]/5 text-[#0F1C2E]" : "border-slate-200 text-slate-500"}`}>
+              {label}
+            </button>
+          ))}
         </div>
       )}
 
       <form className="mt-6 space-y-4" onSubmit={submit}>
-        {isRegister && <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder={accountType === "BUSINESS" ? "Contact person full name" : "Full name"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
+        {isRegister && <input required value={form.name} onChange={e => set("name", e.target.value)} placeholder={accountType === "INDIVIDUAL" ? "Full name" : "Contact person full name"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
         <input required type={isRegister ? "email" : "text"} value={form.email} onChange={e => set("email", e.target.value)}
-          placeholder={isRegister ? "Email address" : "Email address (seeded demo: james.mwangi@example.com)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          placeholder="Email address" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
         {isRegister && <input required value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="Phone number" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
 
         {isRegister && accountType === "BUSINESS" && (
@@ -788,8 +735,18 @@ function AuthPage({ mode, setNav, onAuth }) {
           </div>
         )}
 
+        {isRegister && accountType === "SUPPLIER" && (
+          <div className="rounded-lg border border-sky-200 p-4 space-y-3 bg-sky-50">
+            <p className="text-xs font-medium text-sky-800">Supplier details — an admin verifies new suppliers before you appear in comparisons</p>
+            <input required value={form.companyName} onChange={e => set("companyName", e.target.value)} placeholder="Company name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input required value={form.supplierCategory} onChange={e => set("supplierCategory", e.target.value)} placeholder="Category (e.g. Electronics, Furniture)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input required value={form.supplierLocation} onChange={e => set("supplierLocation", e.target.value)} placeholder="Location" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+            <input value={form.supplierWebsite} onChange={e => set("supplierWebsite", e.target.value)} placeholder="Website (optional)" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          </div>
+        )}
+
         <input required type="password" value={form.password} onChange={e => set("password", e.target.value)}
-          placeholder={isRegister ? "Password (min 8 characters)" : "Password (demo: Password123!)"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          placeholder={isRegister ? "Password (min 8 characters)" : "Password"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
         {isRegister && <input required type="password" value={form.confirm} onChange={e => set("confirm", e.target.value)} placeholder="Confirm password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />}
         {isRegister && (
           <div className="space-y-2 text-xs text-slate-500">
@@ -802,9 +759,6 @@ function AuthPage({ mode, setNav, onAuth }) {
         {notice && <p className="text-xs text-emerald-700">{notice}</p>}
         <PrimaryButton className="w-full" disabled={loading}>{loading ? "Please wait…" : isRegister ? "Create account" : "Log in"}</PrimaryButton>
       </form>
-      <p className="mt-6 text-xs text-slate-400 leading-relaxed">This calls the real API at <code>{import.meta.env.VITE_API_URL || "http://localhost:4000/api"}</code>. If the backend isn't running, use demo mode instead.</p>
-      <button onClick={() => onAuth("customer", { name: "James Mwangi", token: null, role: "customer" })} className="mt-2 text-xs font-medium text-[#0F1C2E] underline block">Continue in demo mode (no backend needed) →</button>
-      <button onClick={() => onAuth("admin", { name: "Admin", token: null, role: "admin" })} className="mt-2 text-xs font-medium text-[#0F1C2E] underline block">Preview as admin (demo mode) →</button>
       <p className="mt-4 text-sm text-slate-500">
         {isRegister ? "Already have an account? " : "New to YourPlug? "}
         <button onClick={() => setNav(isRegister ? "login" : "register")} className="text-[#0F8B75] font-medium">{isRegister ? "Log in" : "Register"}</button>
@@ -849,11 +803,26 @@ function DashSidebar({ tab, setTab, role, setSession, setNav }) {
   );
 }
 
-function DashTopbar({ title, name }) {
+function useTheme() {
+  const [theme, setTheme] = useState(() => localStorage.getItem("yourplug-theme") || "light");
+  const toggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("yourplug-theme", next);
+  };
+  return [theme, toggle];
+}
+
+function DashTopbar({ title, name, theme, onToggleTheme }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-200 bg-white px-8 py-4">
       <h1 className="text-lg font-medium text-[#0F1C2E]">{title}</h1>
       <div className="flex items-center gap-4">
+        {onToggleTheme && (
+          <button onClick={onToggleTheme} className="text-slate-400 hover:text-[#0F1C2E]" title="Toggle dark/light mode">
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        )}
         <Bell size={18} className="text-slate-400" />
         <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">{name.split(" ").map(n => n[0]).join("")}</div>
       </div>
@@ -1628,12 +1597,13 @@ function CustomerDashboard({ setNav, setSession, session }) {
   const selectedReq = allSource.find(r => r.id === selected);
 
   const titles = { overview: "Dashboard", new: "New Request", requests: "My Requests", quotes: "Quotes & Approvals", invoices: "Invoices", payments: "Payments", tracking: "Delivery Tracking", messages: "Messages", documents: "Documents", profile: "Profile", detail: selectedReq?.item || "Request" };
+  const [theme, toggleTheme] = useTheme();
 
   return (
-    <div className="flex h-screen">
+    <div className={`flex h-screen ${theme === "dark" ? "dark" : ""}`}>
       <DashSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashTopbar title={titles[tab]} name={session.name} />
+        <DashTopbar title={titles[tab]} name={session.name} theme={theme} onToggleTheme={toggleTheme} />
         {session.token && (
           <div className={`px-8 py-2 text-xs ${liveError ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
             {liveError ? `Couldn't load live data: ${liveError}` : "Connected to the live API — showing real data from the database."}
@@ -1711,8 +1681,8 @@ function CustomerDashboard({ setNav, setSession, session }) {
 function AdminSidebar({ tab, setTab, setSession, setNav }) {
   const nav = [
     ["overview", "Overview", LayoutGrid], ["orders", "Orders", ClipboardList], ["suppliers", "Suppliers", Package],
-    ["agents", "Agents", Users], ["invoices", "Invoices", Receipt], ["reports", "Reports", BarChart3],
-    ["audit", "Audit Logs", ShieldCheck],
+    ["agents", "Agents", Users], ["invoices", "Invoices", Receipt], ["documents", "Documents", FileText],
+    ["reports", "Reports", BarChart3], ["audit", "Audit Logs", ShieldCheck],
   ];
   return (
     <aside className="w-60 shrink-0 border-r border-slate-200 bg-[#0F1C2E] text-slate-300 h-full flex flex-col">
@@ -2151,17 +2121,107 @@ function AdminSuppliers() {
   );
 }
 
-function AdminAgents() {
+function AdminAgents({ session }) {
+  const [agents, setAgents] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+  const [createdCreds, setCreatedCreds] = useState(null);
+
+  const refresh = () => api.getAgents(session.token).then(setAgents).catch(err => setError(err.message));
+  React.useEffect(() => { refresh(); }, []);
+
+  const createAgent = async () => {
+    if (!form.name || !form.email || !form.phone) return;
+    setCreating(true); setError("");
+    try {
+      const result = await api.createAgent(session.token, form);
+      setCreatedCreds(result);
+      setForm({ name: "", email: "", phone: "" });
+      setShowForm(false);
+      refresh();
+    } catch (err) {
+      setError(err.message || "Couldn't create the agent.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
-    <div className="p-8">
+    <div className="p-8 space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-[#0F1C2E]">Agents</p>
+        <SecondaryButton onClick={() => setShowForm(s => !s)}>{showForm ? "Cancel" : "+ Create Agent"}</SecondaryButton>
+      </div>
+
+      {createdCreds && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">
+          Agent created: <b>{createdCreds.email}</b> — temporary password <b>{createdCreds.tempPassword}</b> (also sent to them by email/SMS). This won't be shown again.
+        </div>
+      )}
+
+      {showForm && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3 max-w-md">
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email address" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone number" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          {error && <p className="text-xs text-rose-600">{error}</p>}
+          <PrimaryButton className="w-full" disabled={creating} onClick={createAgent}>{creating ? "Creating…" : "Create agent"}</PrimaryButton>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Agent</th><th className="text-left px-4 py-3">Active orders</th><th className="text-left px-4 py-3">Completed</th><th className="text-left px-4 py-3">Rating</th></tr></thead>
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">Agent</th><th className="text-left px-4 py-3">Email</th><th className="text-left px-4 py-3">Active orders</th><th className="text-left px-4 py-3">Completed</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {AGENTS.map(a => (
-              <tr key={a.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">{a.name}</td><td className="px-4 py-3">{a.active}</td><td className="px-4 py-3">{a.completed}</td>
-                <td className="px-4 py-3 flex items-center gap-1"><Star size={12} className="text-amber-400 fill-amber-400" /> {a.rating}</td></tr>
+            {agents.map(a => (
+              <tr key={a.id}><td className="px-4 py-3 font-medium text-[#0F1C2E]">{a.name}</td><td className="px-4 py-3">{a.email}</td><td className="px-4 py-3">{a.active}</td><td className="px-4 py-3">{a.completed}</td></tr>
             ))}
+            {agents.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No agents yet — create one above.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminDocuments({ session }) {
+  const [docs, setDocs] = useState([]);
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    api.getAllDocuments(session.token).then(setDocs).catch(err => setError(err.message));
+  }, []);
+
+  const download = async (id) => {
+    try {
+      const { url } = await api.getAdminDocumentDownloadUrl(session.token, id);
+      window.open(url, "_blank");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="p-8">
+      <p className="text-sm text-slate-500 mb-4">Every document uploaded across every request — for audit and review.</p>
+      {error && <p className="text-xs text-rose-600 mb-3">{error}</p>}
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs"><tr><th className="text-left px-4 py-3">File</th><th className="text-left px-4 py-3">Request</th><th className="text-left px-4 py-3">Uploaded by</th><th className="text-left px-4 py-3">Visibility</th><th className="text-left px-4 py-3">Date</th><th></th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {docs.map(d => (
+              <tr key={d.id}>
+                <td className="px-4 py-3 font-medium text-[#0F1C2E]">{d.fileName}</td>
+                <td className="px-4 py-3 text-slate-500">{d.requestRef}</td>
+                <td className="px-4 py-3">{d.uploadedBy}</td>
+                <td className="px-4 py-3"><span className={`text-[10px] rounded px-1.5 py-0.5 ${d.visibility === "internal" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{d.visibility}</span></td>
+                <td className="px-4 py-3 text-slate-500">{new Date(d.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3"><button onClick={() => download(d.id)} className="text-[#0F8B75] font-medium">Download</button></td>
+              </tr>
+            ))}
+            {docs.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No documents uploaded yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -2248,6 +2308,201 @@ function mapLiveOrder(r) {
   };
 }
 
+function AgentSidebar({ tab, setTab, setSession, setNav }) {
+  const nav = [["overview", "Assigned Orders", LayoutGrid], ["profile", "Profile", Settings]];
+  return (
+    <aside className="w-60 shrink-0 border-r border-slate-200 bg-[#0F1C2E] text-slate-300 h-full flex flex-col">
+      <div className="p-5 border-b border-white/10">
+        <div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-white font-semibold text-sm">YP</div><span className="text-sm font-semibold text-white">Agent</span></div>
+      </div>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {nav.map(([key, label, Icon]) => (
+          <button key={key} onClick={() => setTab(key)} className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${tab === key ? "bg-white/10 text-white" : "hover:bg-white/5"}`}>
+            <Icon size={16} /> {label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-white/10">
+        <button onClick={() => { setSession(null); setNav("home"); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"><LogOut size={16} /> Log out</button>
+      </div>
+    </aside>
+  );
+}
+
+function AgentDashboard({ setNav, setSession, session }) {
+  const [tab, setTab] = useState("overview");
+  const [selected, setSelected] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [error, setError] = useState("");
+  const [theme, toggleTheme] = useTheme();
+
+  const refresh = () => api.allOrders(session.token).then(data => setOrders(data.map(mapLiveOrder))).catch(err => setError(err.message));
+  React.useEffect(() => { refresh(); }, []);
+
+  const selectedReq = orders.find(r => r.id === selected);
+  const titles = { overview: "Assigned Orders", workspace: selectedReq?.item || "Workspace", profile: "Profile" };
+
+  const stages = {
+    "In progress": orders.filter(r => !["Completed", "Cancelled", "Awaiting Approval", "Awaiting Payment"].includes(r.status)),
+    "Awaiting customer": orders.filter(r => ["Awaiting Approval", "Awaiting Payment"].includes(r.status)),
+    "Completed": orders.filter(r => r.status === "Completed"),
+  };
+
+  return (
+    <div className={`flex h-screen ${theme === "dark" ? "dark" : ""}`}>
+      <AgentSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashTopbar title={titles[tab]} name={session.name} theme={theme} onToggleTheme={toggleTheme} />
+        {error && <div className="px-8 py-2 text-xs bg-rose-50 text-rose-700">{error}</div>}
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          {tab === "overview" && (
+            <div className="p-8 space-y-8">
+              {Object.entries(stages).map(([label, list]) => (
+                <div key={label}>
+                  <p className="font-medium text-[#0F1C2E] mb-3">{label} <span className="text-slate-400 font-normal">({list.length})</span></p>
+                  <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+                    {list.length === 0 && <p className="text-sm text-slate-400 p-5">Nothing here.</p>}
+                    {list.map(r => (
+                      <button key={r.id} onClick={() => { setSelected(r.id); setTab("workspace"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
+                        <div className="flex items-center gap-3"><UrgencyTag urgency={r.urgency} /><div><p className="text-sm font-medium text-[#0F1C2E]">{r.item}</p><p className="text-xs text-slate-400">{r.id} · {r.customer}</p></div></div>
+                        <StatusBadge status={r.status} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} session={session} onChanged={refresh} /></div>}
+          {tab === "profile" && <ProfilePanel session={session} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupplierDashboard({ setNav, setSession, session }) {
+  const [tab, setTab] = useState("overview");
+  const [openRequests, setOpenRequests] = useState([]);
+  const [myQuotes, setMyQuotes] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [profileForm, setProfileForm] = useState({ category: "", location: "", website: "" });
+  const [quoteForm, setQuoteForm] = useState({}); // requestId -> {price, deliveryEstimate, warrantyTerms}
+  const [quoteState, setQuoteState] = useState({}); // requestId -> "saving" | "done" | error string
+  const [error, setError] = useState("");
+  const [theme, toggleTheme] = useTheme();
+
+  const refresh = () => {
+    api.getOpenRequests(session.token).then(setOpenRequests).catch(err => setError(err.message));
+    api.getMySupplierQuotes(session.token).then(setMyQuotes).catch(() => {});
+    api.getSupplierProfile(session.token).then(p => { setProfile(p); setProfileForm({ category: p.category, location: p.location, website: p.website || "" }); }).catch(() => {});
+  };
+  React.useEffect(() => { refresh(); }, []);
+
+  const quotedRequestIds = new Set(myQuotes.map(q => q.requestId));
+
+  const submitQuote = async (requestId) => {
+    const f = quoteForm[requestId];
+    if (!f?.price || !f?.deliveryEstimate || !f?.warrantyTerms) return;
+    setQuoteState(s => ({ ...s, [requestId]: "saving" }));
+    try {
+      await api.submitSupplierQuote(session.token, requestId, { price: Number(f.price), deliveryEstimate: f.deliveryEstimate, warrantyTerms: f.warrantyTerms });
+      setQuoteState(s => ({ ...s, [requestId]: "done" }));
+      refresh();
+    } catch (err) {
+      setQuoteState(s => ({ ...s, [requestId]: err.message || "Failed" }));
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      await api.updateSupplierProfile(session.token, profileForm);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const titles = { overview: "Open Requests", quotes: "My Quotes", profile: "Company Profile" };
+  const nav = [["overview", "Open Requests", ClipboardList], ["quotes", "My Quotes", Receipt], ["profile", "Profile", Settings]];
+
+  return (
+    <div className={`flex h-screen ${theme === "dark" ? "dark" : ""}`}>
+      <aside className="w-60 shrink-0 border-r border-slate-200 bg-[#0F1C2E] text-slate-300 h-full flex flex-col">
+        <div className="p-5 border-b border-white/10">
+          <div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-white font-semibold text-sm">YP</div><span className="text-sm font-semibold text-white">Supplier</span></div>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          {nav.map(([key, label, Icon]) => (
+            <button key={key} onClick={() => setTab(key)} className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${tab === key ? "bg-white/10 text-white" : "hover:bg-white/5"}`}>
+              <Icon size={16} /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-white/10">
+          <button onClick={() => { setSession(null); setNav("home"); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-white/5"><LogOut size={16} /> Log out</button>
+        </div>
+      </aside>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashTopbar title={titles[tab]} name={session.name} theme={theme} onToggleTheme={toggleTheme} />
+        {error && <div className="px-8 py-2 text-xs bg-rose-50 text-rose-700">{error}</div>}
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-8">
+          {tab === "overview" && (
+            <div className="space-y-4">
+              {openRequests.length === 0 && <p className="text-sm text-slate-500">No open requests right now.</p>}
+              {openRequests.map(r => {
+                const alreadyQuoted = quotedRequestIds.has(r.id);
+                const state = quoteState[r.id];
+                return (
+                  <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-5">
+                    <div className="flex items-center justify-between mb-2"><p className="font-medium text-[#0F1C2E]">{r.item}</p><UrgencyTag urgency={r.urgency.charAt(0) + r.urgency.slice(1).toLowerCase()} /></div>
+                    {r.description && <p className="text-sm text-slate-600 mb-3">{r.description}</p>}
+                    <p className="text-xs text-slate-400 mb-3">Qty {r.quantity} · {r.ref}</p>
+                    {alreadyQuoted ? (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 inline-block">Quote submitted</p>
+                    ) : state === "done" ? (
+                      <p className="text-xs text-emerald-700">Quote submitted ✓</p>
+                    ) : (
+                      <div className="grid sm:grid-cols-3 gap-2">
+                        <input placeholder="Price (KSh)" type="number" value={quoteForm[r.id]?.price || ""} onChange={e => setQuoteForm(f => ({ ...f, [r.id]: { ...f[r.id], price: e.target.value } }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        <input placeholder="Delivery estimate" value={quoteForm[r.id]?.deliveryEstimate || ""} onChange={e => setQuoteForm(f => ({ ...f, [r.id]: { ...f[r.id], deliveryEstimate: e.target.value } }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        <input placeholder="Warranty terms" value={quoteForm[r.id]?.warrantyTerms || ""} onChange={e => setQuoteForm(f => ({ ...f, [r.id]: { ...f[r.id], warrantyTerms: e.target.value } }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        {typeof state === "string" && state !== "saving" && <p className="text-xs text-rose-600 sm:col-span-3">{state}</p>}
+                        <SecondaryButton className="sm:col-span-3 !py-2" disabled={state === "saving"} onClick={() => submitQuote(r.id)}>{state === "saving" ? "Submitting…" : "Submit quote"}</SecondaryButton>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {tab === "quotes" && (
+            <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+              {myQuotes.length === 0 && <p className="text-sm text-slate-400 p-5">No quotes submitted yet.</p>}
+              {myQuotes.map(q => (
+                <div key={q.id} className="flex items-center justify-between px-5 py-4 text-sm">
+                  <div><p className="font-medium text-[#0F1C2E]">{q.request.item}</p><p className="text-xs text-slate-400">{q.request.ref}</p></div>
+                  <div className="flex items-center gap-3"><Money value={q.price} /><StatusBadge status={q.request.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} /></div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab === "profile" && profile && (
+            <div className="max-w-md rounded-xl border border-slate-200 bg-white p-6 space-y-3">
+              <div className="flex justify-between text-sm"><span className="text-slate-500">Company</span><span className="font-medium text-[#0F1C2E]">{profile.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-slate-500">Verified</span><span>{profile.verified ? <span className="text-emerald-700">Verified ✓</span> : "Pending admin verification"}</span></div>
+              <input value={profileForm.category} onChange={e => setProfileForm(f => ({ ...f, category: e.target.value }))} placeholder="Category" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              <input value={profileForm.location} onChange={e => setProfileForm(f => ({ ...f, location: e.target.value }))} placeholder="Location" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              <input value={profileForm.website} onChange={e => setProfileForm(f => ({ ...f, website: e.target.value }))} placeholder="Website" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              <SecondaryButton className="w-full !py-2" onClick={saveProfile}>Save</SecondaryButton>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
@@ -2278,28 +2533,29 @@ function AdminDashboard({ setNav, setSession, session }) {
     : REQUESTS.filter(r => r.value).map((r, i) => ({ number: `INV-${1820 + i}`, customer: r.customer, reference: `YPM-${1820 + i}`, amount: r.value, currency: r.currency, status: ["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed" }));
   const logs = liveMode ? (liveLogs || []) : DEMO_AUDIT_LOGS;
   const selectedReq = orders.find(r => r.id === selected);
-  const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs" };
+  const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs", documents: "Documents" };
+  const [theme, toggleTheme] = useTheme();
 
   return (
-    <div className="flex h-screen">
+    <div className={`flex h-screen ${theme === "dark" ? "dark" : ""}`}>
       <AdminSidebar tab={tab} setTab={setTab} setSession={setSession} setNav={setNav} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashTopbar title={titles[tab]} name={session.name} />
+        <DashTopbar title={titles[tab]} name={session.name} theme={theme} onToggleTheme={toggleTheme} />
         {liveMode && (
           <div className={`px-8 py-2 text-xs ${liveError ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
             {liveError ? `Couldn't load live data: ${liveError}` : "Connected to the live API — showing real data from the database."}
           </div>
         )}
-        {!liveMode && <div className="px-8 py-2 text-xs bg-amber-50 text-amber-700">Demo mode — showing sample data, not connected to a backend.</div>}
         <div className="flex-1 overflow-y-auto bg-slate-50">
           {tab === "overview" && <AdminOverview orders={orders} setTab={setTab} setSelected={setSelected} />}
           {tab === "orders" && <AdminOrders orders={orders} setTab={setTab} setSelected={setSelected} />}
           {tab === "workspace" && <div className="bg-white h-full"><AdminWorkspace req={selectedReq} setTab={setTab} session={session} onChanged={refreshOrders} /></div>}
           {tab === "suppliers" && <AdminSuppliers />}
-          {tab === "agents" && <AdminAgents />}
+          {tab === "agents" && <AdminAgents session={session} />}
           {tab === "invoices" && <AdminInvoices invoices={invoices} liveMode={liveMode} />}
           {tab === "reports" && <AdminReports />}
           {tab === "audit" && <AdminAudit logs={logs} liveMode={liveMode} />}
+          {tab === "documents" && <AdminDocuments session={session} />}
         </div>
       </div>
     </div>
@@ -2315,12 +2571,14 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   const handleAuth = (role, data = {}) => {
-    if (role === "admin") { setSession({ role: "admin", name: data.name || "Admin", token: data.token || null, userId: data.userId || null }); setNav("admin"); }
-    else { setSession({ role: "customer", name: data.name || "James Mwangi", token: data.token || null, userId: data.userId || null }); setNav("dashboard"); }
+    setSession({ role, name: data.name || "", token: data.token || null, userId: data.userId || null });
+    setNav(role === "admin" ? "admin" : role === "agent" ? "agent" : role === "supplier" ? "supplier" : "dashboard");
   };
 
   if (session && nav === "dashboard") return <CustomerDashboard setNav={setNav} setSession={setSession} session={session} />;
   if (session && nav === "admin") return <AdminDashboard setNav={setNav} setSession={setSession} session={session} />;
+  if (session && nav === "agent") return <AgentDashboard setNav={setNav} setSession={setSession} session={session} />;
+  if (session && nav === "supplier") return <SupplierDashboard setNav={setNav} setSession={setSession} session={session} />;
 
   const pages = {
     home: <HomePage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
