@@ -137,4 +137,33 @@ export const api = {
   getSupplierProfile: (token) => request("/supplier/profile", { headers: { Authorization: `Bearer ${token}` } }),
   updateSupplierProfile: (token, payload) =>
     request("/supplier/profile", { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  // Website Appearance — public (no auth, called by the live site)
+  getPublicSiteSettings: () => request("/public/site-settings"),
+  getPublicServices: () => request("/public/services"),
+  // Website Appearance — admin
+  uploadMedia: async (token, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_URL}/admin/appearance/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Upload failed.");
+    return data;
+  },
+  getMediaLibrary: (token) => request("/admin/appearance/media", { headers: { Authorization: `Bearer ${token}` } }),
+  deleteMedia: (token, id) =>
+    request(`/admin/appearance/media/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+  getAdminSiteSettings: (token) => request("/admin/appearance/site-settings", { headers: { Authorization: `Bearer ${token}` } }),
+  saveSiteSettings: (token, settings) =>
+    request("/admin/appearance/site-settings", { method: "PUT", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(settings) }),
+  getAdminServices: (token) => request("/admin/appearance/services", { headers: { Authorization: `Bearer ${token}` } }),
+  createService: (token, payload) =>
+    request("/admin/appearance/services", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  updateService: (token, id, payload) =>
+    request(`/admin/appearance/services/${id}`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }),
+  deleteService: (token, id) =>
+    request(`/admin/appearance/services/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
 };

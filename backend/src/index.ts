@@ -15,6 +15,7 @@ import { fulfillmentRouter } from "./routes/fulfillment.js";
 import { documentsRouter } from "./routes/documents.js";
 import { aiRouter } from "./routes/ai.js";
 import { supplierPortalRouter } from "./routes/supplierPortal.js";
+import { appearanceAdminRouter, appearancePublicRouter } from "./routes/appearance.js";
 
 const app = express();
 
@@ -43,6 +44,8 @@ app.use("/api", fulfillmentRouter);
 app.use("/api", documentsRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/supplier", supplierPortalRouter);
+app.use("/api/admin/appearance", appearanceAdminRouter);
+app.use("/api/public", appearancePublicRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

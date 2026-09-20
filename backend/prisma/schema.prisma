@@ -84,6 +84,7 @@ model User {
   internationalEstimates InternationalEstimate[]
   legalAcceptances       LegalAcceptance[]
   uploadedDocuments      Document[]
+  uploadedMedia          MediaAsset[]
 }
 
 model Organization {
@@ -313,6 +314,42 @@ model Document {
   storageKey   String   // key/path within the S3-compatible bucket
   visibility   String   @default("customer") // "customer" | "internal"
   createdAt    DateTime @default(now())
+}
+
+// --- Website Appearance / no-code graphics management ---
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String   // key/path within the S3-compatible bucket — never base64 in the DB
+  width        Int?
+  height       Int?
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+// Flexible key -> value store so new graphics "slots" can be added later
+// without a schema migration. Value is either a MediaAsset id (for images)
+// or a plain string (for colors/text).
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceEntry {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  imageAssetId String?
+  icon         String?
+  displayOrder Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model AuditLog {

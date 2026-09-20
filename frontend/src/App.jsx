@@ -4,7 +4,8 @@ import {
   Globe2, Zap, Building2, Menu, X, ChevronRight, Upload, MapPin, Phone, Mail,
   FileText, MessageSquare, Bell, Settings, LogOut, LayoutGrid, ClipboardList,
   Receipt, CreditCard, Users, Wrench, BarChart3, AlertTriangle, Star, Plus,
-  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart, Layers, Sun, Moon
+  Sparkles, Wallet, ChevronDown, Filter, TrendingDown, Award, ShoppingCart, PackageCheck, HandHeart, Layers, Sun, Moon,
+  Image as ImageIcon, Palette, Trash2
 } from "lucide-react";
 import { api } from "./lib/api.js";
 
@@ -309,7 +310,7 @@ const WHY_CARDS = [
   [HandHeart, "Transparent quotations", "You see the full procurement breakdown before you approve anything.", "bg-amber-500"],
 ];
 
-function HomePage({ setNav }) {
+function HomePage({ setNav, siteSettings = {} }) {
   return (
     <>
       <div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-[#0F1C2E] via-[#0F1C2E] to-[#0c3b34]">
@@ -333,9 +334,9 @@ function HomePage({ setNav }) {
             </div>
           </div>
           <div className="relative h-[420px] hidden sm:block">
-            <Photo src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70" alt="Procurement professional at work"
+            <Photo src={siteSettings.hero_image_1 || "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70"} alt="Procurement professional at work"
               className="absolute top-0 right-0 w-72 h-80 rounded-2xl shadow-2xl rotate-2" />
-            <Photo src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=500&q=70" alt="Delivery package"
+            <Photo src={siteSettings.hero_image_2 || "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=500&q=70"} alt="Delivery package"
               className="absolute bottom-0 left-0 w-52 h-52 rounded-2xl shadow-2xl -rotate-3" />
             <div className="absolute top-10 left-0 w-64 rounded-xl bg-white p-4 shadow-xl">
               <p className="text-[11px] text-slate-400 mb-2">YPM-202609-00127 · HP EliteBook</p>
@@ -402,8 +403,8 @@ function HomePage({ setNav }) {
   );
 }
 
-function ServicesPage({ setNav }) {
-  const cards = [
+function ServicesPage({ setNav, publicServices = [] }) {
+  const fallbackCards = [
     [Package, "Personal procurement", "Everyday purchases sourced and delivered without the legwork.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
     [Building2, "Business procurement", "Multi-user accounts, spending visibility and monthly statements for organizations.", "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=700&q=70"],
     [Search, "Supplier sourcing", "We identify suitable local suppliers based on your requirements.", "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=700&q=70"],
@@ -411,6 +412,9 @@ function ServicesPage({ setNav }) {
     [Zap, "Urgent procurement", "Priority handling for time-sensitive requirements.", "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70"],
     [PackageCheck, "Logistics & delivery coordination", "We coordinate delivery after the purchase is made.", "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=70"],
   ];
+  const cards = publicServices.length > 0
+    ? publicServices.map(s => [Package, s.name, s.description, s.imageUrl])
+    : fallbackCards;
   return (
     <>
       <Section>
@@ -1683,6 +1687,7 @@ function AdminSidebar({ tab, setTab, setSession, setNav }) {
     ["overview", "Overview", LayoutGrid], ["orders", "Orders", ClipboardList], ["suppliers", "Suppliers", Package],
     ["agents", "Agents", Users], ["invoices", "Invoices", Receipt], ["documents", "Documents", FileText],
     ["reports", "Reports", BarChart3], ["audit", "Audit Logs", ShieldCheck],
+    ["appearance", "Website Appearance", ImageIcon],
   ];
   return (
     <aside className="w-60 shrink-0 border-r border-slate-200 bg-[#0F1C2E] text-slate-300 h-full flex flex-col">
@@ -2503,6 +2508,251 @@ function SupplierDashboard({ setNav, setSession, session }) {
   );
 }
 
+function ImageSlotEditor({ session, settingKey, label }) {
+  const [currentUrl, setCurrentUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  const refresh = () => {
+    api.getAdminSiteSettings(session.token).then(async (settings) => {
+      const assetId = settings[settingKey];
+      if (!assetId) { setCurrentUrl(null); return; }
+      const library = await api.getMediaLibrary(session.token);
+      const asset = library.find(a => a.id === assetId);
+      setCurrentUrl(asset?.url || null);
+    }).catch(err => setError(err.message));
+  };
+  React.useEffect(() => { refresh(); }, []);
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    setUploading(true); setError("");
+    try {
+      const asset = await api.uploadMedia(session.token, file);
+      await api.saveSiteSettings(session.token, { [settingKey]: asset.id });
+      refresh();
+    } catch (err) {
+      setError(err.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const remove = async () => {
+    try {
+      await api.saveSiteSettings(session.token, { [settingKey]: "" });
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <p className="font-medium text-[#0F1C2E] mb-3">{label}</p>
+      <div className="h-40 rounded-lg bg-slate-100 overflow-hidden mb-3 flex items-center justify-center">
+        {currentUrl ? <img src={currentUrl} alt={label} className="h-full w-full object-cover" /> : <span className="text-xs text-slate-400">No image set — using default</span>}
+      </div>
+      {error && <p className="text-xs text-rose-600 mb-2">{error}</p>}
+      <div className="flex gap-2">
+        <label className="flex-1 text-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50 cursor-pointer">
+          {uploading ? "Uploading…" : "Upload / Replace"}
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="hidden" onChange={e => handleUpload(e.target.files?.[0])} />
+        </label>
+        {currentUrl && <button onClick={remove} className="rounded-lg border border-slate-300 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50">Remove</button>}
+      </div>
+    </div>
+  );
+}
+
+function AdminAppearanceHome({ session }) {
+  const slots = [
+    ["hero_image_1", "Hero image (primary)"],
+    ["hero_image_2", "Hero image (secondary)"],
+    ["why_yourplug_image", "Why YourPlug section image"],
+    ["contact_image", "Contact section image"],
+  ];
+  return (
+    <div className="grid sm:grid-cols-2 gap-5">
+      {slots.map(([key, label]) => <ImageSlotEditor key={key} session={session} settingKey={key} label={label} />)}
+    </div>
+  );
+}
+
+function AdminAppearanceServices({ session }) {
+  const [services, setServices] = useState([]);
+  const [library, setLibrary] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", description: "", imageAssetId: "", displayOrder: 0, active: true });
+  const [error, setError] = useState("");
+
+  const refresh = () => {
+    api.getAdminServices(session.token).then(setServices).catch(err => setError(err.message));
+    api.getMediaLibrary(session.token).then(setLibrary).catch(() => {});
+  };
+  React.useEffect(() => { refresh(); }, []);
+
+  const uploadForNewService = async (file) => {
+    if (!file) return;
+    try {
+      const asset = await api.uploadMedia(session.token, file);
+      setForm(f => ({ ...f, imageAssetId: asset.id }));
+      setLibrary(l => [asset, ...l]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const create = async () => {
+    if (!form.name || !form.description) return;
+    try {
+      await api.createService(session.token, { ...form, displayOrder: Number(form.displayOrder) || 0, imageAssetId: form.imageAssetId || undefined });
+      setForm({ name: "", description: "", imageAssetId: "", displayOrder: 0, active: true });
+      setShowForm(false);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const toggleActive = async (s) => {
+    await api.updateService(session.token, s.id, { active: !s.active });
+    refresh();
+  };
+  const remove = async (id) => {
+    await api.deleteService(session.token, id);
+    refresh();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-[#0F1C2E]">Services</p>
+        <SecondaryButton onClick={() => setShowForm(s => !s)}>{showForm ? "Cancel" : "+ Add Service"}</SecondaryButton>
+      </div>
+      {error && <p className="text-xs text-rose-600">{error}</p>}
+      {showForm && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3 max-w-md">
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Service name" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description" rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <input value={form.displayOrder} onChange={e => setForm(f => ({ ...f, displayOrder: e.target.value }))} type="number" placeholder="Display order" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+          <label className="block text-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-[#0F1C2E] hover:bg-slate-50 cursor-pointer">
+            {form.imageAssetId ? "Image selected ✓ — click to replace" : "Upload image"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => uploadForNewService(e.target.files?.[0])} />
+          </label>
+          <PrimaryButton className="w-full" onClick={create}>Create service</PrimaryButton>
+        </div>
+      )}
+      <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+        {services.length === 0 && <p className="text-sm text-slate-400 p-5">No services yet — the public Services page is showing built-in defaults until you add some here.</p>}
+        {services.map(s => (
+          <div key={s.id} className="flex items-center justify-between px-5 py-4">
+            <div><p className="text-sm font-medium text-[#0F1C2E]">{s.name}</p><p className="text-xs text-slate-400">{s.description}</p></div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => toggleActive(s)} className={`text-[10px] rounded px-2 py-1 font-medium ${s.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{s.active ? "Active" : "Inactive"}</button>
+              <button onClick={() => remove(s.id)} className="text-rose-500 hover:text-rose-700"><Trash2 size={15} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminAppearanceBranding({ session }) {
+  const [colors, setColors] = useState({ primary_color: "#0F1C2E", secondary_color: "#0F8B75", accent_color: "#F59E0B" });
+  const [saved, setSaved] = useState(false);
+
+  React.useEffect(() => {
+    api.getAdminSiteSettings(session.token).then(s => {
+      setColors(c => ({
+        primary_color: s.primary_color || c.primary_color,
+        secondary_color: s.secondary_color || c.secondary_color,
+        accent_color: s.accent_color || c.accent_color,
+      }));
+    }).catch(() => {});
+  }, []);
+
+  const save = async () => {
+    await api.saveSiteSettings(session.token, colors);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="max-w-md space-y-5">
+      <p className="text-xs text-slate-500">These are stored and available for future theming — the live site currently uses fixed brand colors; wiring these into every component is the next step once you've picked your palette here.</p>
+      {[["primary_color", "Primary"], ["secondary_color", "Secondary"], ["accent_color", "Accent"]].map(([key, label]) => (
+        <div key={key} className="flex items-center gap-4">
+          <input type="color" value={colors[key]} onChange={e => setColors(c => ({ ...c, [key]: e.target.value }))} className="h-10 w-14 rounded border border-slate-300" />
+          <div><p className="text-sm font-medium text-[#0F1C2E]">{label}</p><p className="text-xs text-slate-400">{colors[key]}</p></div>
+        </div>
+      ))}
+      <div className="rounded-xl border border-slate-200 p-4 flex gap-2">
+        <div className="h-10 flex-1 rounded" style={{ background: colors.primary_color }} />
+        <div className="h-10 flex-1 rounded" style={{ background: colors.secondary_color }} />
+        <div className="h-10 flex-1 rounded" style={{ background: colors.accent_color }} />
+      </div>
+      <PrimaryButton onClick={save}>{saved ? "Saved ✓" : "Save branding"}</PrimaryButton>
+    </div>
+  );
+}
+
+function AdminMediaLibrary({ session }) {
+  const [assets, setAssets] = useState([]);
+  const [error, setError] = useState("");
+
+  const refresh = () => api.getMediaLibrary(session.token).then(setAssets).catch(err => setError(err.message));
+  React.useEffect(() => { refresh(); }, []);
+
+  const remove = async (id) => {
+    try {
+      await api.deleteMedia(session.token, id);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div>
+      {error && <p className="text-xs text-rose-600 mb-3">{error}</p>}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {assets.map(a => (
+          <div key={a.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="h-32 bg-slate-100">{a.url && <img src={a.url} alt={a.fileName} className="h-full w-full object-cover" />}</div>
+            <div className="p-3 text-xs">
+              <p className="font-medium text-[#0F1C2E] truncate">{a.fileName}</p>
+              <p className="text-slate-400">{a.mimeType} · {(a.sizeBytes / 1024).toFixed(0)} KB</p>
+              <p className="text-slate-400">{new Date(a.createdAt).toLocaleDateString()}</p>
+              <button onClick={() => remove(a.id)} className="mt-2 text-rose-500 hover:text-rose-700">Delete</button>
+            </div>
+          </div>
+        ))}
+        {assets.length === 0 && <p className="text-sm text-slate-400 col-span-full">No images uploaded yet.</p>}
+      </div>
+    </div>
+  );
+}
+
+function AdminAppearance({ session }) {
+  const [sub, setSub] = useState("home");
+  const subs = [["home", "Home"], ["services", "Services"], ["branding", "Branding"], ["media", "Media Library"]];
+  return (
+    <div className="p-8">
+      <div className="flex gap-2 mb-6">
+        {subs.map(([key, label]) => (
+          <button key={key} onClick={() => setSub(key)} className={`rounded-full px-4 py-1.5 text-sm ${sub === key ? "bg-[#0F1C2E] text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>
+        ))}
+      </div>
+      {sub === "home" && <AdminAppearanceHome session={session} />}
+      {sub === "services" && <AdminAppearanceServices session={session} />}
+      {sub === "branding" && <AdminAppearanceBranding session={session} />}
+      {sub === "media" && <AdminMediaLibrary session={session} />}
+    </div>
+  );
+}
+
 function AdminDashboard({ setNav, setSession, session }) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
@@ -2533,7 +2783,7 @@ function AdminDashboard({ setNav, setSession, session }) {
     : REQUESTS.filter(r => r.value).map((r, i) => ({ number: `INV-${1820 + i}`, customer: r.customer, reference: `YPM-${1820 + i}`, amount: r.value, currency: r.currency, status: ["Awaiting Payment", "Awaiting Approval"].includes(r.status) ? "Awaiting Payment" : "Completed" }));
   const logs = liveMode ? (liveLogs || []) : DEMO_AUDIT_LOGS;
   const selectedReq = orders.find(r => r.id === selected);
-  const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs", documents: "Documents" };
+  const titles = { overview: "Overview", orders: "Orders", workspace: selectedReq?.item || "Workspace", suppliers: "Suppliers", agents: "Agents", invoices: "Invoices", reports: "Reports", audit: "Audit logs", documents: "Documents", appearance: "Website Appearance" };
   const [theme, toggleTheme] = useTheme();
 
   return (
@@ -2556,6 +2806,7 @@ function AdminDashboard({ setNav, setSession, session }) {
           {tab === "reports" && <AdminReports />}
           {tab === "audit" && <AdminAudit logs={logs} liveMode={liveMode} />}
           {tab === "documents" && <AdminDocuments session={session} />}
+          {tab === "appearance" && <AdminAppearance session={session} />}
         </div>
       </div>
     </div>
@@ -2569,6 +2820,13 @@ function AdminDashboard({ setNav, setSession, session }) {
 export default function App() {
   const [nav, setNav] = useState("home");
   const [session, setSession] = useState(null);
+  const [siteSettings, setSiteSettings] = useState({});
+  const [publicServices, setPublicServices] = useState([]);
+
+  React.useEffect(() => {
+    api.getPublicSiteSettings().then(setSiteSettings).catch(() => {});
+    api.getPublicServices().then(setPublicServices).catch(() => {});
+  }, []);
 
   const handleAuth = (role, data = {}) => {
     setSession({ role, name: data.name || "", token: data.token || null, userId: data.userId || null });
@@ -2581,7 +2839,7 @@ export default function App() {
   if (session && nav === "supplier") return <SupplierDashboard setNav={setNav} setSession={setSession} session={session} />;
 
   const pages = {
-    home: <HomePage setNav={setNav} />, services: <ServicesPage setNav={setNav} />,
+    home: <HomePage setNav={setNav} siteSettings={siteSettings} />, services: <ServicesPage setNav={setNav} publicServices={publicServices} />,
     international: <InternationalPage setNav={setNav} session={session} />, contact: <ContactPage />, track: <TrackOrderPage />,
     login: <AuthPage mode="login" setNav={setNav} onAuth={handleAuth} />, register: <AuthPage mode="register" setNav={setNav} onAuth={handleAuth} />,
   };
