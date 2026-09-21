@@ -195,7 +195,7 @@ function SiteHeader({ nav, setNav, session, setSession }) {
           ))}
         </nav>
         <div className="hidden lg:flex items-center gap-3">
-          <button onClick={() => setNav("track")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Track My Order</button>
+          <button onClick={() => setNav("track")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Track My Request</button>
           {session ? (
             <button onClick={() => setNav(session.role === "customer" ? "dashboard" : session.role)}
               className="rounded-lg bg-[#0F8B75] px-4 py-2 text-sm font-medium text-white hover:bg-[#0c6f5d]">
@@ -204,7 +204,7 @@ function SiteHeader({ nav, setNav, session, setSession }) {
           ) : (
             <>
               <button onClick={() => setNav("login")} className="text-sm font-medium text-slate-600 hover:text-[#0F1C2E]">Log in</button>
-              <button onClick={() => setNav("register")} className="rounded-lg bg-[#0F1C2E] px-4 py-2 text-sm font-medium text-white hover:bg-[#16283f]">Request an Item</button>
+              <button onClick={() => setNav("register")} className="rounded-lg bg-[#0F1C2E] px-4 py-2 text-sm font-medium text-white hover:bg-[#16283f]">Make a Request</button>
             </>
           )}
         </div>
@@ -215,7 +215,7 @@ function SiteHeader({ nav, setNav, session, setSession }) {
           {links.map(([label, key]) => (
             <button key={key} onClick={() => { setNav(key); setOpen(false); }} className="block text-sm text-slate-600">{label}</button>
           ))}
-          <button onClick={() => { setNav("track"); setOpen(false); }} className="block text-sm text-slate-600">Track My Order</button>
+          <button onClick={() => { setNav("track"); setOpen(false); }} className="block text-sm text-slate-600">Track My Request</button>
           <div className="pt-2 flex gap-3">
             <SecondaryButton onClick={() => { setNav("login"); setOpen(false); }} className="flex-1 py-2">Log in</SecondaryButton>
             <PrimaryButton onClick={() => { setNav("register"); setOpen(false); }} className="flex-1 py-2">Request</PrimaryButton>
@@ -267,8 +267,8 @@ function SiteFooter({ setNav }) {
         <div>
           <p className="text-white text-sm font-medium mb-3">Customer</p>
           <ul className="space-y-2">
-            <li><button onClick={() => setNav("register")} className="text-sm text-slate-400 hover:text-white">Request an Item</button></li>
-            <li><button onClick={() => setNav("track")} className="text-sm text-slate-400 hover:text-white">Track My Order</button></li>
+            <li><button onClick={() => setNav("register")} className="text-sm text-slate-400 hover:text-white">Make a Request</button></li>
+            <li><button onClick={() => setNav("track")} className="text-sm text-slate-400 hover:text-white">Track My Request</button></li>
             <li><button onClick={() => setNav("login")} className="text-sm text-slate-400 hover:text-white">Log in</button></li>
             <li><button onClick={() => setNav("contact")} className="text-sm text-slate-400 hover:text-white">Contact</button></li>
           </ul>
@@ -294,11 +294,9 @@ function Eyebrow({ children, color = "text-[#0F8B75]" }) {
 
 const HOW_IT_WORKS = [
   [MessageSquare, "Tell Us", "Describe what you need — in plain language, with a photo, or a link.", "bg-[#0F8B75]"],
-  [Search, "We Source", "We search for suitable suppliers and products that match your request.", "bg-sky-500"],
-  [BarChart3, "We Compare", "We compare price, specifications, reliability, delivery and warranty.", "bg-amber-500"],
-  [CheckCircle2, "You Approve", "We present our recommendation with full pricing for your approval.", "bg-[#0F8B75]"],
-  [ShoppingCart, "We Purchase", "Once approved and paid, YourPlug handles the purchase.", "bg-sky-500"],
-  [PackageCheck, "We Deliver", "We coordinate delivery to your specified location.", "bg-amber-500"],
+  [HandHeart, "We Handle It", "We source, compare and arrange everything behind the scenes.", "bg-sky-500"],
+  [CheckCircle2, "You Approve", "We check in only when we need your approval or payment.", "bg-amber-500"],
+  [PackageCheck, "We Complete It", "We coordinate delivery and follow through until it's done.", "bg-[#0F8B75]"],
 ];
 
 const WHY_CARDS = [
@@ -318,15 +316,15 @@ function HomePage({ setNav, siteSettings = {} }) {
         <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
         <Section className="relative py-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <p className="text-sm font-semibold text-amber-300 mb-4 tracking-wide">Your Personal Procurement Partner</p>
-            <h1 className="text-5xl font-semibold tracking-tight text-white leading-[1.08]">We source quality goods and services for you.</h1>
-            <p className="mt-6 text-lg text-slate-300 max-w-lg">Tell us what you need and YourPlug handles the sourcing process — from finding suitable suppliers and comparing options to coordinating purchasing and delivery.</p>
+            <p className="text-sm font-semibold text-amber-300 mb-4 tracking-wide">Your Personal Concierge Partner</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-white leading-[1.08]">We source, arrange and get things done for you.</h1>
+            <p className="mt-6 text-lg text-slate-300 max-w-lg">From sourcing quality goods and services to arranging purchases, deliveries and specialized requests, YourPlug handles the details for you.</p>
             <div className="mt-6 rounded-lg bg-white/5 border border-white/10 px-4 py-3 max-w-lg">
-              <p className="text-sm text-slate-300">Local procurement is our core service. Need something from abroad? We can also source and arrange imports on request.</p>
+              <p className="text-sm text-slate-300">Serving clients across Kenya, with international sourcing and imports available on request.</p>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
-              <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton>
-              <button onClick={() => setNav("track")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Track My Order</button>
+              <PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Make a Request</PrimaryButton>
+              <button onClick={() => setNav("services")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">Explore Services</button>
             </div>
             <div className="mt-10 flex items-center gap-6 text-sm text-slate-300">
               <div className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-amber-300" /> Verified suppliers</div>
@@ -334,36 +332,40 @@ function HomePage({ setNav, siteSettings = {} }) {
             </div>
           </div>
           <div className="relative h-[420px] hidden sm:block">
-            <Photo src={siteSettings.hero_image_1 || "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70"} alt="Procurement professional at work"
+            <Photo src={siteSettings.hero_image_1 || "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=700&q=70"} alt="Concierge partner at work"
               className="absolute top-0 right-0 w-72 h-80 rounded-2xl shadow-2xl rotate-2" />
             <Photo src={siteSettings.hero_image_2 || "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=500&q=70"} alt="Delivery package"
               className="absolute bottom-0 left-0 w-52 h-52 rounded-2xl shadow-2xl -rotate-3" />
             <div className="absolute top-10 left-0 w-64 rounded-xl bg-white p-4 shadow-xl">
               <p className="text-[11px] text-slate-400 mb-2">YPM-202609-00127 · HP EliteBook</p>
-              <div className="flex items-center gap-2 text-sm text-[#0F1C2E] font-medium"><Circle size={14} className="text-amber-500 fill-amber-500" /> In transit</div>
+              <div className="flex items-center gap-2 text-sm text-[#0F1C2E] font-medium"><Circle size={14} className="text-amber-500 fill-amber-500" /> On the way</div>
             </div>
             <div className="absolute bottom-8 right-6 rounded-xl bg-white px-4 py-3 shadow-xl flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-[#0F8B75]" /><span className="text-xs font-medium text-[#0F1C2E]">Supplier verified</span>
+              <CheckCircle2 size={16} className="text-[#0F8B75]" /><span className="text-xs font-medium text-[#0F1C2E]">No action needed</span>
             </div>
           </div>
         </Section>
       </div>
 
       <Section className="text-center max-w-3xl">
-        <p className="text-xl text-slate-700 leading-relaxed">You have something to buy. Instead of spending hours comparing suppliers yourself, hand it to YourPlug — a managed procurement service, not a marketplace.</p>
+        <p className="text-xl text-slate-700 leading-relaxed">Tell us what you need. We'll handle the rest.</p>
       </Section>
 
       <Section className="bg-gradient-to-br from-sky-50 via-white to-[#0F8B75]/5 rounded-3xl">
-        <Eyebrow>What do you need?</Eyebrow>
-        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">From everyday supplies to specialized goods and services.</h2>
-        <p className="mt-3 text-slate-600 max-w-2xl">Tell us what you need and we'll source it for you. These are examples — not a catalogue to browse.</p>
-        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[
-            [CATEGORIES[0], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[1], "bg-sky-100 text-sky-700"], [CATEGORIES[2], "bg-amber-100 text-amber-700"],
-            [CATEGORIES[3], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[4], "bg-sky-100 text-sky-700"], [CATEGORIES[5], "bg-amber-100 text-amber-700"],
-            [CATEGORIES[6], "bg-[#0F8B75]/10 text-[#0F8B75]"], [CATEGORIES[7], "bg-sky-100 text-sky-700"], [CATEGORIES[8], "bg-amber-100 text-amber-700"],
-          ].map(([c, tone]) => (
-            <button key={c} onClick={() => setNav("register")} className={`rounded-xl px-4 py-5 text-sm font-medium text-left hover:-translate-y-0.5 transition-transform ${tone}`}>{c}</button>
+        <Eyebrow>What can we help you with?</Eyebrow>
+        <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">Tell us what you need — a product, service, errand, arrangement, or something hard to find.</h2>
+        <div className="mt-8 max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-500 mb-2">What do you need?</p>
+          <div className="rounded-xl border border-slate-200 px-4 py-3 text-slate-400 text-sm mb-3">e.g. "I need 20 office chairs delivered to my office in Nairobi."</div>
+          <div className="flex flex-wrap gap-3">
+            <PrimaryButton onClick={() => setNav("register")}>Make a Request</PrimaryButton>
+            <SecondaryButton onClick={() => setNav("register")}><Upload size={15} className="inline mr-1" /> Upload a photo or document</SecondaryButton>
+          </div>
+        </div>
+        <p className="mt-6 text-xs text-slate-400 uppercase tracking-wide">A few examples — not restrictive categories</p>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {["Source a product", "Arrange a service", "Find something hard to source", "Business request", "Personal request", "Import on request"].map((c, i) => (
+            <button key={c} onClick={() => setNav("register")} className={`rounded-xl px-4 py-5 text-sm font-medium text-left hover:-translate-y-0.5 transition-transform ${["bg-[#0F8B75]/10 text-[#0F8B75]", "bg-sky-100 text-sky-700", "bg-amber-100 text-amber-700"][i % 3]}`}>{c}</button>
           ))}
         </div>
       </Section>
@@ -373,7 +375,7 @@ function HomePage({ setNav, siteSettings = {} }) {
         <h2 className="text-3xl font-semibold text-[#0F1C2E] max-w-xl">A managed process, start to finish.</h2>
         <div className="mt-14 relative">
           <div className="hidden lg:block absolute top-7 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0F8B75] via-sky-400 to-amber-400" />
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {HOW_IT_WORKS.map(([Icon, title, body, bg], i) => (
               <div key={title} className="relative flex flex-col items-center text-center">
                 <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full ${bg} text-white shadow-md`}><Icon size={22} /></div>
@@ -397,7 +399,7 @@ function HomePage({ setNav, siteSettings = {} }) {
             </div>
           ))}
         </div>
-        <div className="mt-10 text-center"><PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Request an Item</PrimaryButton></div>
+        <div className="mt-10 text-center"><PrimaryButton onClick={() => setNav("register")} className="!bg-[#0F8B75] hover:!bg-[#0c6f5d]">Make a Request</PrimaryButton></div>
       </Section>
     </>
   );
@@ -469,7 +471,7 @@ function ServicesPage({ setNav, publicServices = [] }) {
         <p className="mt-4 text-xs text-emerald-100">Contact details shown here are placeholders until YourPlug's real business contact information is configured.</p>
       </Section>
 
-      <Section className="text-center"><PrimaryButton onClick={() => setNav("register")}>Request an Item</PrimaryButton></Section>
+      <Section className="text-center"><PrimaryButton onClick={() => setNav("register")}>Make a Request</PrimaryButton></Section>
     </>
   );
 }
@@ -844,6 +846,28 @@ function MetricCard({ label, value, tone = "default" }) {
   );
 }
 
+// Plain-language customer-facing status — the internal StatusBadge value stays
+// exact for admins/agents, but customers see this instead: "complexity for
+// YourPlug, simplicity for the customer."
+const CUSTOMER_STATUS_COPY = {
+  "Submitted": { message: "We've received your request.", action: null },
+  "Under Review": { message: "We're reviewing your request.", action: null },
+  "Supplier Research": { message: "We're sourcing options for you.", action: null },
+  "Quotation Ready": { message: "We're preparing your recommendation.", action: null },
+  "Awaiting Approval": { message: "Your recommendation is ready.", action: "Review and approve your recommended option." },
+  "Awaiting Payment": { message: "You're all set — payment is the last step.", action: "Complete payment to proceed." },
+  "Purchased": { message: "We've purchased this for you.", action: null },
+  "Dispatched": { message: "Your request is on its way.", action: null },
+  "In Transit": { message: "Your request is on its way.", action: null },
+  "Delivered": { message: "Your request has been delivered.", action: null },
+  "Completed": { message: "Your request is complete.", action: null },
+  "Cancelled": { message: "This request was cancelled.", action: null },
+  "Issue Reported": { message: "We're looking into an issue with this request.", action: null },
+};
+function customerStatusCopy(status) {
+  return CUSTOMER_STATUS_COPY[status] || { message: "We're working on it.", action: null };
+}
+
 function CustomerOverview({ myRequests, setTab, setSelected }) {
   const count = s => myRequests.filter(r => r.status === s).length;
   return (
@@ -859,19 +883,31 @@ function CustomerOverview({ myRequests, setTab, setSelected }) {
       </div>
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-medium text-[#0F1C2E]">Recent activity</p>
+          <p className="font-medium text-[#0F1C2E]">What's happening with your requests</p>
           <button onClick={() => setTab("requests")} className="text-sm text-[#0F8B75] font-medium">View all</button>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
-          {myRequests.map(r => (
-            <button key={r.id} onClick={() => { setSelected(r.id); setTab("detail"); }} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50">
-              <div>
-                <p className="text-sm font-medium text-[#0F1C2E]">{r.item}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{r.id} · {r.created}</p>
-              </div>
-              <div className="flex items-center gap-3"><UrgencyTag urgency={r.urgency} /><StatusBadge status={r.status} /></div>
-            </button>
-          ))}
+        <div className="space-y-3">
+          {myRequests.map(r => {
+            const copy = customerStatusCopy(r.status);
+            return (
+              <button key={r.id} onClick={() => { setSelected(r.id); setTab("detail"); }} className="w-full text-left rounded-xl border border-slate-200 bg-white p-5 hover:border-slate-300 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-slate-400">{r.id}</p>
+                    <p className="font-medium text-[#0F1C2E]">{r.item}</p>
+                    <p className="text-sm text-slate-600 mt-1">{copy.message}</p>
+                  </div>
+                  {copy.action ? (
+                    <span className="text-xs font-medium text-amber-700 bg-amber-50 rounded-full px-3 py-1.5 whitespace-nowrap">Action required</span>
+                  ) : (
+                    <span className="text-xs font-medium text-slate-400 whitespace-nowrap">No action needed</span>
+                  )}
+                </div>
+                {copy.action && <p className="text-xs text-amber-700 mt-2">{copy.action}</p>}
+              </button>
+            );
+          })}
+          {myRequests.length === 0 && <p className="text-sm text-slate-500 rounded-xl border border-slate-200 bg-white p-6">No requests yet — tell us what you need to get started.</p>}
         </div>
       </div>
     </div>
@@ -879,7 +915,11 @@ function CustomerOverview({ myRequests, setTab, setSelected }) {
 }
 
 function RequestDetail({ req, setTab }) {
+  const [showComparison, setShowComparison] = useState(false);
   if (!req) return null;
+  const copy = customerStatusCopy(req.status);
+  const fee = Math.round(req.value * 0.06);
+  const total = req.value + fee + 800;
   return (
     <div className="p-8 max-w-4xl space-y-8">
       <button onClick={() => setTab("requests")} className="text-sm text-slate-500">← Back to My Requests</button>
@@ -887,24 +927,34 @@ function RequestDetail({ req, setTab }) {
         <div>
           <p className="text-xs text-slate-400">{req.id}</p>
           <h2 className="text-2xl font-semibold text-[#0F1C2E] mt-1">{req.item}</h2>
+          <p className="text-sm text-slate-600 mt-1">{copy.message}</p>
         </div>
-        <div className="flex items-center gap-2"><UrgencyTag urgency={req.urgency} /><StatusBadge status={req.status} /></div>
+        <div className="flex items-center gap-2">
+          <UrgencyTag urgency={req.urgency} />
+          {copy.action ? <span className="text-xs font-medium text-amber-700 bg-amber-50 rounded-full px-3 py-1.5">Action required</span> : <span className="text-xs font-medium text-slate-400">No action needed</span>}
+        </div>
       </div>
 
       {req.quotes.length > 0 && req.status === "Awaiting Approval" && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-6">
-          <p className="font-medium text-[#0F1C2E]">Recommended: {req.recommended}</p>
-          <p className="text-sm text-slate-600 mt-1">Best overall value based on price, reliability, specifications, delivery and warranty.</p>
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">YourPlug recommends</p>
+          <p className="font-medium text-lg text-[#0F1C2E]">{req.item}</p>
+          <p className="text-sm text-slate-600 mt-1">Recommended supplier: <span className="font-medium text-[#0F1C2E]">{req.recommended}</span></p>
           <div className="mt-4 grid sm:grid-cols-2 gap-3">
-            <div className="bg-white rounded-lg p-4 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-slate-500">Item price</span><Money value={req.value} /></div>
-              <div className="flex justify-between"><span className="text-slate-500">YourPlug fee</span><span>KSh {Math.round(req.value * 0.06).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Delivery fee</span><span>KSh 800</span></div>
-              <div className="flex justify-between font-medium pt-2 border-t border-slate-100 mt-2"><span>Total</span><Money value={req.value + Math.round(req.value * 0.06) + 800} /></div>
+            <div className="bg-white rounded-lg p-4 text-sm space-y-2">
+              <div className="flex justify-between"><span className="text-slate-500">Price</span><Money value={req.value} /></div>
+              <div className="flex justify-between font-medium pt-2 border-t border-slate-100 mt-2"><span>Total</span><Money value={total} /></div>
+              <p className="text-xs text-slate-500 pt-2">Why we selected this option:</p>
+              <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                <li>Good specification match</li>
+                <li>Suitable delivery timeline</li>
+                <li>Competitive quotation</li>
+              </ul>
             </div>
             <div className="flex flex-col gap-2">
-              <PrimaryButton icon={CheckCircle2}>Approve & Pay</PrimaryButton>
-              <SecondaryButton>Request Another Option</SecondaryButton>
+              <PrimaryButton icon={CheckCircle2}>Approve & Proceed</PrimaryButton>
+              <SecondaryButton>Ask a Question</SecondaryButton>
+              {req.quotes.length > 1 && <button onClick={() => setShowComparison(s => !s)} className="text-xs text-slate-500 underline mt-1">{showComparison ? "Hide comparison" : "View comparison"}</button>}
             </div>
           </div>
         </div>
@@ -922,9 +972,9 @@ function RequestDetail({ req, setTab }) {
         </div>
       </div>
 
-      {req.quotes.length > 0 && (
+      {req.quotes.length > 0 && showComparison && (
         <div>
-          <p className="font-medium text-[#0F1C2E] mb-3">Supplier comparison</p>
+          <p className="font-medium text-[#0F1C2E] mb-3">Comparison</p>
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs"><tr>
